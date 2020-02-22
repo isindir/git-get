@@ -1,7 +1,8 @@
 SHELL := /bin/bash
 GO 		:= GO15VENDOREXPERIMENT=1 GO111MODULE=on GOPROXY=https://proxy.golang.org go
 
-VERSION:="0.0.1"
+VERSION:="0.0.2"
+EXE:="git-get"
 BUILD:=`git rev-parse --short HEAD`
 TIME:=`date`
 SRC = $(shell find . -type f -name '*.go' -not -path "./vendor/*")
@@ -11,10 +12,20 @@ all: clean mod fmt test build
 .PHONY: build
 ## build: builds the binary file
 build:
+	@GO111MODULE=on GOOS=darwin GOARCH=amd64 go build \
+		-ldflags="-X 'github.com/isindir/git-get/version.Version=v${VERSION}' \
+		-X 'github.com/isindir/git-get/version.Commit=${BUILD}' \
+		-X 'github.com/isindir/git-get/version.Time=${TIME}' " \
+	  -o ./bin/${EXE}-${VERSION}-osx main.go
+	@GO111MODULE=on GOOS=linux GOARCH=amd64 go build \
+		-ldflags="-X 'github.com/isindir/git-get/version.Version=v${VERSION}' \
+		-X 'github.com/isindir/git-get/version.Commit=${BUILD}' \
+		-X 'github.com/isindir/git-get/version.Time=${TIME}' " \
+	  -o ./bin/${EXE}-${VERSION}-linux main.go
 	@go build -ldflags="-X 'github.com/isindir/git-get/version.Version=v${VERSION}' \
 		-X 'github.com/isindir/git-get/version.Commit=${BUILD}' \
 		-X 'github.com/isindir/git-get/version.Time=${TIME}' " \
-		-o ./bin/git-get main.go
+		-o ./bin/${EXE} main.go
 
 .PHONY: run
 # run: runs main help
@@ -75,7 +86,7 @@ echo:
 ## release: release application
 release: repo-tag
 	@git-chglog "${VERSION}" > chglog.tmp
-	@hub release create -F chglog.tmp "${VERSION}" -a bin/git-get
+	@hub release create -F chglog.tmp "${VERSION}" -a bin/${EXE}-${VERSION}-linux -a bin/${EXE}-${VERSION}-osx
 	@rm -f chglog.tmp
 
 .PHONY: help

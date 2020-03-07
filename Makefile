@@ -1,7 +1,7 @@
 SHELL := /bin/bash
 GO 		:= GO15VENDOREXPERIMENT=1 GO111MODULE=on GOPROXY=https://proxy.golang.org go
 
-VERSION:="0.0.1"
+VERSION:="0.0.2"
 EXE:="git-get"
 BUILD:=`git rev-parse --short HEAD`
 TIME:=`date`

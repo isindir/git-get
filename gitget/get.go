@@ -37,6 +37,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/fatih/color"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
@@ -44,6 +45,8 @@ import (
 const gitCmd = "git"
 
 var stayOnRef bool
+var colorHighlight *color.Color
+var colorRef *color.Color
 
 type GitGetRepo struct {
 	Url      string   `yaml:"url"`
@@ -126,9 +129,9 @@ func (repo *GitGetRepo) Prepare() {
 	repo.SetRepoFullPath()
 	repo.SetSha()
 
-	log.Infof("%s: url: %s (%s) -> %s", repo.sha, repo.Url, repo.Ref, repo.fullPath)
+	log.Infof("%s: url: %s (%s) -> %s", repo.sha, repo.Url, colorRef.Sprintf(repo.Ref), repo.fullPath)
 	log.Debugf("%s: path: '%s'", repo.sha, repo.Path)
-	log.Debugf("%s: ref: '%s'", repo.sha, repo.Ref)
+	log.Debugf("%s: ref: '%s'", repo.sha, colorRef.Sprintf(repo.Ref))
 	log.Debugf("%s: altName: '%s'", repo.sha, repo.AltName)
 }
 
@@ -283,7 +286,7 @@ func (repo *GitGetRepo) ProcessRepoBasedOnCleaness() {
 }
 
 func (repo GitGetRepo) GitCheckout(branch string) {
-	log.Infof("%s: Checkout to '%s' branch", repo.sha, branch)
+	log.Infof("%s: Checkout to '%s' branch in '%s'", repo.sha, colorHighlight.Sprintf(branch), repo.fullPath)
 	_, err := repo.ExecGitCommand([]string{"checkout", branch}, nil, nil, repo.fullPath)
 	if err != nil {
 		log.Warnf("%s: %v", repo.sha, err)
@@ -304,7 +307,7 @@ func (repo *GitGetRepo) ProcessRepoBasedOnCurrentBranch() {
 		if !stayOnRef {
 			repo.GitCheckout(currentBranch)
 		} else {
-			log.Debugf("%s: Stay on ref branch '%s'", repo.sha, repo.Ref)
+			log.Debugf("%s: Stay on ref branch '%s'", repo.sha, colorRef.Sprintf(repo.Ref))
 		}
 	}
 }
@@ -421,7 +424,10 @@ func processConfig(repoList []GitGetRepo) {
 }
 
 func GitGetRepositories(cfgFile string, concurrencyLevel int, stickToRef bool, shallow bool) {
+	colorHighlight = color.New(color.FgRed)
+	colorRef = color.New(color.FgHiBlue)
 	yamlFile, err := ioutil.ReadFile(cfgFile)
+
 	stayOnRef = stickToRef
 	if err != nil {
 		log.Fatalf("%s: %s", cfgFile, err)

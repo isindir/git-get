@@ -1,8 +1,18 @@
-![](https://github.com/isindir/git-get/workflows/build-git-get/badge.svg)
+[![Go Report Card](https://goreportcard.com/badge/github.com/isindir/git-get?)](https://goreportcard.com/report/github.com/isindir/git-get)
+[![GoActions](https://github.com/isindir/git-get/workflows/build-git-get/badge.svg)](https://github.com/isindir/git-get/actions?query=workflow%3Abuild-git-get)
+[![GitHub release](https://img.shields.io/github/tag/isindir/git-get.svg)](https://github.com/isindir/git-get/releases)
+[![MIT](http://img.shields.io/github/license/isindir/git-get.svg)](LICENSE)
 
 # git-get - fetch multiple repositories
 
-# Configuration file `Gitfile`
+## Installation
+
+```bash
+$ brew tap isindir/git-get
+$ brew install git-get
+```
+
+## Configuration file `Gitfile`
 
 `git-get` (which can be executed as `git get` if is in the `$PATH`) fetches git repositories using
 configuration file (by default `Gitfile` in current directory of invocation).

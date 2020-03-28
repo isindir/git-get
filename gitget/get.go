@@ -71,6 +71,8 @@ type GitGetRepoI interface {
 	GitStashSave()
 	IsClean() bool
 	IsCurrentBranchRef() bool
+	IsRefBranch() bool
+	IsRefTag() bool
 	PathExists(path string) (bool, os.FileInfo)
 	Prepare()
 	ProcessRepoBasedOnCleaness()
@@ -167,9 +169,15 @@ func (repo GitGetRepo) RepoPathExists() bool {
 
 func (repo GitGetRepo) Clone() bool {
 	log.Infof("%s: Clone repository '%s'", repo.sha, repo.Url)
-	_, err := repo.ExecGitCommand([]string{"clone", "--branch", repo.Ref, repo.Url, repo.fullPath}, nil, nil, "")
+	var serr bytes.Buffer
+	_, err := repo.ExecGitCommand(
+		[]string{"clone", "--branch", repo.Ref, repo.Url, repo.fullPath},
+		nil,
+		&serr,
+		"",
+	)
 	if err != nil {
-		log.Errorf("%s: %v", repo.sha, err)
+		log.Errorf("%s: %v %v", repo.sha, err, serr.String())
 		return false
 	}
 	return true
@@ -177,9 +185,15 @@ func (repo GitGetRepo) Clone() bool {
 
 func (repo GitGetRepo) ShallowClone() bool {
 	log.Infof("%s: Clone repository '%s'", repo.sha, repo.Url)
-	_, err := repo.ExecGitCommand([]string{"clone", "--depth", "1", "--branch", repo.Ref, repo.Url, repo.fullPath}, nil, nil, "")
+	var serr bytes.Buffer
+	_, err := repo.ExecGitCommand(
+		[]string{"clone", "--depth", "1", "--branch", repo.Ref, repo.Url, repo.fullPath},
+		nil,
+		&serr,
+		"",
+	)
 	if err != nil {
-		log.Errorf("%s: %v", repo.sha, err)
+		log.Errorf("%s: %v %v", repo.sha, err, serr.String())
 		return false
 	}
 	return true
@@ -249,25 +263,52 @@ func (repo GitGetRepo) ExecGitCommand(
 
 func (repo GitGetRepo) GitStashSave() {
 	log.Infof("%s: Stash unsaved changes", repo.sha)
-	_, err := repo.ExecGitCommand([]string{"stash", "save"}, nil, nil, repo.fullPath)
+	var serr bytes.Buffer
+	_, err := repo.ExecGitCommand([]string{"stash", "save"}, nil, &serr, repo.fullPath)
 	if err != nil {
-		log.Warnf("%s: %v", repo.sha, err)
+		log.Warnf("%s: %v: %v", repo.sha, err, serr.String())
 	}
 }
 
 func (repo GitGetRepo) GitStashPop() {
 	log.Infof("%s: Restore stashed changes", repo.sha)
-	_, err := repo.ExecGitCommand([]string{"stash", "pop"}, nil, nil, repo.fullPath)
+	var serr bytes.Buffer
+	_, err := repo.ExecGitCommand([]string{"stash", "pop"}, nil, &serr, repo.fullPath)
 	if err != nil {
-		log.Warnf("%s: %v", repo.sha, err)
+		log.Warnf("%s: %v: %v", repo.sha, err, serr.String())
 	}
 }
 
-func (repo GitGetRepo) GitPull() {
-	log.Infof("%s: Pulling upstream changes", repo.sha)
-	_, err := repo.ExecGitCommand([]string{"pull", "-f"}, nil, nil, repo.fullPath)
+func (repo GitGetRepo) IsRefBranch() bool {
+	res := true
+	fullRef := fmt.Sprintf("refs/heads/%s", repo.Ref)
+	_, err := repo.ExecGitCommand([]string{"show-ref", "--quiet", "--verify", fullRef}, nil, nil, repo.fullPath)
 	if err != nil {
-		log.Errorf("%s: %v", repo.sha, err)
+		res = false
+	}
+	return res
+}
+
+func (repo GitGetRepo) IsRefTag() bool {
+	res := true
+	fullRef := fmt.Sprintf("refs/tags/%s", repo.Ref)
+	_, err := repo.ExecGitCommand([]string{"show-ref", "--quiet", "--verify", fullRef}, nil, nil, repo.fullPath)
+	if err != nil {
+		res = false
+	}
+	return res
+}
+
+func (repo GitGetRepo) GitPull() {
+	if repo.IsRefBranch() {
+		log.Infof("%s: Pulling upstream changes", repo.sha)
+		var serr bytes.Buffer
+		_, err := repo.ExecGitCommand([]string{"pull", "-f"}, nil, &serr, repo.fullPath)
+		if err != nil {
+			log.Errorf("%s: %v: %v", repo.sha, err, serr.String())
+		}
+	} else {
+		log.Debugf("%s: Skip pulling upstream changes for '%s' which is not a branch", repo.sha, colorRef.Sprintf(repo.Ref))
 	}
 }
 
@@ -287,9 +328,10 @@ func (repo *GitGetRepo) ProcessRepoBasedOnCleaness() {
 
 func (repo GitGetRepo) GitCheckout(branch string) {
 	log.Infof("%s: Checkout to '%s' branch in '%s'", repo.sha, colorHighlight.Sprintf(branch), repo.fullPath)
-	_, err := repo.ExecGitCommand([]string{"checkout", branch}, nil, nil, repo.fullPath)
+	var serr bytes.Buffer
+	_, err := repo.ExecGitCommand([]string{"checkout", branch}, nil, &serr, repo.fullPath)
 	if err != nil {
-		log.Warnf("%s: %v", repo.sha, err)
+		log.Warnf("%s: %v: %v", repo.sha, err, serr.String())
 	}
 }
 
@@ -361,8 +403,8 @@ func processConfigShallow(repoList []GitGetRepo, concurrencyLevel int) {
 
 			repository.Prepare()
 			if repository.RepoPathExists() {
-				log.Debugf("%s: path '%s' missing - performing shallow clone", repository.sha, repository.fullPath)
-				repository.ShallowClone()
+				log.Debugf("%s: path '%s' exists - removing target path", repository.sha, repository.fullPath)
+				repository.RemoveTargetDir(false)
 			}
 			log.Debugf("%s: path '%s' missing - performing shallow clone", repository.sha, repository.fullPath)
 			repository.ShallowClone()

@@ -23,6 +23,8 @@ var (
 	lockGitGetRepoIMockGitStashSave                    sync.RWMutex
 	lockGitGetRepoIMockIsClean                         sync.RWMutex
 	lockGitGetRepoIMockIsCurrentBranchRef              sync.RWMutex
+	lockGitGetRepoIMockIsRefBranch                     sync.RWMutex
+	lockGitGetRepoIMockIsRefTag                        sync.RWMutex
 	lockGitGetRepoIMockPathExists                      sync.RWMutex
 	lockGitGetRepoIMockPrepare                         sync.RWMutex
 	lockGitGetRepoIMockProcessRepoBasedOnCleaness      sync.RWMutex
@@ -80,6 +82,12 @@ var _ GitGetRepoI = &GitGetRepoIMock{}
 //             },
 //             IsCurrentBranchRefFunc: func() bool {
 // 	               panic("mock out the IsCurrentBranchRef method")
+//             },
+//             IsRefBranchFunc: func() bool {
+// 	               panic("mock out the IsRefBranch method")
+//             },
+//             IsRefTagFunc: func() bool {
+// 	               panic("mock out the IsRefTag method")
 //             },
 //             PathExistsFunc: func(path string) (bool, os.FileInfo) {
 // 	               panic("mock out the PathExists method")
@@ -153,6 +161,12 @@ type GitGetRepoIMock struct {
 
 	// IsCurrentBranchRefFunc mocks the IsCurrentBranchRef method.
 	IsCurrentBranchRefFunc func() bool
+
+	// IsRefBranchFunc mocks the IsRefBranch method.
+	IsRefBranchFunc func() bool
+
+	// IsRefTagFunc mocks the IsRefTag method.
+	IsRefTagFunc func() bool
 
 	// PathExistsFunc mocks the PathExists method.
 	PathExistsFunc func(path string) (bool, os.FileInfo)
@@ -233,6 +247,12 @@ type GitGetRepoIMock struct {
 		}
 		// IsCurrentBranchRef holds details about calls to the IsCurrentBranchRef method.
 		IsCurrentBranchRef []struct {
+		}
+		// IsRefBranch holds details about calls to the IsRefBranch method.
+		IsRefBranch []struct {
+		}
+		// IsRefTag holds details about calls to the IsRefTag method.
+		IsRefTag []struct {
 		}
 		// PathExists holds details about calls to the PathExists method.
 		PathExists []struct {
@@ -605,6 +625,58 @@ func (mock *GitGetRepoIMock) IsCurrentBranchRefCalls() []struct {
 	lockGitGetRepoIMockIsCurrentBranchRef.RLock()
 	calls = mock.calls.IsCurrentBranchRef
 	lockGitGetRepoIMockIsCurrentBranchRef.RUnlock()
+	return calls
+}
+
+// IsRefBranch calls IsRefBranchFunc.
+func (mock *GitGetRepoIMock) IsRefBranch() bool {
+	if mock.IsRefBranchFunc == nil {
+		panic("GitGetRepoIMock.IsRefBranchFunc: method is nil but GitGetRepoI.IsRefBranch was just called")
+	}
+	callInfo := struct {
+	}{}
+	lockGitGetRepoIMockIsRefBranch.Lock()
+	mock.calls.IsRefBranch = append(mock.calls.IsRefBranch, callInfo)
+	lockGitGetRepoIMockIsRefBranch.Unlock()
+	return mock.IsRefBranchFunc()
+}
+
+// IsRefBranchCalls gets all the calls that were made to IsRefBranch.
+// Check the length with:
+//     len(mockedGitGetRepoI.IsRefBranchCalls())
+func (mock *GitGetRepoIMock) IsRefBranchCalls() []struct {
+} {
+	var calls []struct {
+	}
+	lockGitGetRepoIMockIsRefBranch.RLock()
+	calls = mock.calls.IsRefBranch
+	lockGitGetRepoIMockIsRefBranch.RUnlock()
+	return calls
+}
+
+// IsRefTag calls IsRefTagFunc.
+func (mock *GitGetRepoIMock) IsRefTag() bool {
+	if mock.IsRefTagFunc == nil {
+		panic("GitGetRepoIMock.IsRefTagFunc: method is nil but GitGetRepoI.IsRefTag was just called")
+	}
+	callInfo := struct {
+	}{}
+	lockGitGetRepoIMockIsRefTag.Lock()
+	mock.calls.IsRefTag = append(mock.calls.IsRefTag, callInfo)
+	lockGitGetRepoIMockIsRefTag.Unlock()
+	return mock.IsRefTagFunc()
+}
+
+// IsRefTagCalls gets all the calls that were made to IsRefTag.
+// Check the length with:
+//     len(mockedGitGetRepoI.IsRefTagCalls())
+func (mock *GitGetRepoIMock) IsRefTagCalls() []struct {
+} {
+	var calls []struct {
+	}
+	lockGitGetRepoIMockIsRefTag.RLock()
+	calls = mock.calls.IsRefTag
+	lockGitGetRepoIMockIsRefTag.RUnlock()
 	return calls
 }
 

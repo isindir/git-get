@@ -39,6 +39,7 @@ jobs:
     - name: Check out full code history
       run: |
         git fetch --prune --unshallow
+        git pull --tags
 
     - name: Build and Test
       run: |

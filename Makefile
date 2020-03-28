@@ -1,7 +1,7 @@
 SHELL := /bin/bash
 GO 		:= GO15VENDOREXPERIMENT=1 GO111MODULE=on GOPROXY=https://proxy.golang.org go
 
-VERSION:="0.0.3"
+VERSION:="0.0.4"
 EXE:="git-get"
 BUILD:=`git rev-parse --short HEAD`
 TIME:=`date`
@@ -67,7 +67,16 @@ clean:
 .PHONY: repo-tag
 ## repo-tag: tags git repository with latest version
 repo-tag:
-	@git tag -a ${VERSION} -m "git-tag ${VERSION}"
+	@{ \
+		version=$$( echo ${VERSION} ) ; \
+		set +e ; \
+		git show-ref --quiet --verify "refs/tags/$$version" ; \
+		res=$$? ; \
+		set -e ; \
+		if [[ ! $$res -eq 0 ]]; then \
+			git tag -a $$version -m "git-tag $$version" ; \
+		fi ; \
+	}
 
 .PHONY: mod
 ## mod: fetches dependencies
@@ -88,6 +97,7 @@ release: repo-tag
 	@git-chglog "${VERSION}" > chglog.tmp
 	@hub release create -F chglog.tmp "${VERSION}" -a bin/${EXE}-${VERSION}-linux -a bin/${EXE}-${VERSION}-osx
 	@rm -f chglog.tmp
+
 
 .PHONY: help
 ## help: prints this help message

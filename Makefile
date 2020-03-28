@@ -93,10 +93,21 @@ echo:
 
 .PHONY: release
 ## release: release application
-release: repo-tag
-	@git-chglog "${VERSION}" > chglog.tmp
-	@hub release create -F chglog.tmp "${VERSION}" -a bin/${EXE}-${VERSION}-linux -a bin/${EXE}-${VERSION}-osx
-	@rm -f chglog.tmp
+release:
+	@{ \
+		version=$$( echo ${VERSION} ) ; \
+		exe=$$( echo ${EXE} ) ; \
+		set +e ; \
+		git show-ref --quiet --verify "refs/tags/$$version" ; \
+		res=$$? ; \
+		set -e ; \
+		if [[ ! $$res -eq 0 ]]; then \
+			git tag -a $$version -m "git-tag $$version" ; \
+			git-chglog "$$version" > chglog.tmp ; \
+			hub release create -F chglog.tmp "$$version" -a bin/$${exe}-$${version}-linux -a bin/$${exe}-$${version}-osx ; \
+			rm -f chglog.tmp ; \
+		fi ; \
+	}
 
 
 .PHONY: help

@@ -23,6 +23,8 @@ package main
 
 import "github.com/isindir/git-get/cmd"
 
+// Version defines application version number, at compile time substituted
+// with actual version number.
 var Version = "main.Develop"
 
 func main() {

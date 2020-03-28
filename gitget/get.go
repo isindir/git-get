@@ -19,6 +19,8 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
+
+// Package gitget implements business logic of the application.
 package gitget
 
 //go:generate moq -out gitgetrepoi_moq_test.go . GitGetRepoI
@@ -48,6 +50,7 @@ var stayOnRef bool
 var colorHighlight *color.Color
 var colorRef *color.Color
 
+// GitGetRepo structure defines information about single git repository.
 type GitGetRepo struct {
 	Url      string   `yaml:"url"`
 	Path     string   `yaml:"path,omitempty"`
@@ -58,6 +61,7 @@ type GitGetRepo struct {
 	sha      string
 }
 
+// GitGetRepoI interface defined for mocking purposes.
 type GitGetRepoI interface {
 	Clone() bool
 	CreateSymlink(symlink string)
@@ -118,12 +122,15 @@ func (repo *GitGetRepo) SetRepoLocalName() {
 	repo.AltName = repo.GetRepoLocalName()
 }
 
+// SetSha generates and sets `sha` of the data structure to use in log messages.
 func (repo *GitGetRepo) SetSha() {
 	h := sha1.New()
 	io.WriteString(h, fmt.Sprintf("%s (%s) %s", repo.Url, repo.Ref, repo.fullPath))
 	repo.sha = fmt.Sprintf("%x", h.Sum(nil))[0:7]
 }
 
+// Prepare performs checks for repository as well as constructs extra information and sets repository data structure
+// values.
 func (repo *GitGetRepo) Prepare() {
 	repo.EnsurePathExists()
 	repo.SetDefaultRef()
@@ -153,6 +160,7 @@ func (repo *GitGetRepo) SetRepoFullPath() {
 	repo.fullPath = path.Join(repo.Path, repo.GetRepoLocalName())
 }
 
+// PathExists returns `true` if given `path` passed as sting exists, otherwise returns false.
 func PathExists(path string) (bool, os.FileInfo) {
 	finfo, err := os.Stat(path)
 
@@ -167,6 +175,7 @@ func (repo GitGetRepo) RepoPathExists() bool {
 	return res
 }
 
+// Clone runs `git clone --branch` command.
 func (repo GitGetRepo) Clone() bool {
 	log.Infof("%s: Clone repository '%s'", repo.sha, repo.Url)
 	var serr bytes.Buffer
@@ -183,6 +192,7 @@ func (repo GitGetRepo) Clone() bool {
 	return true
 }
 
+// ShallowClone runs `git clone --depth 1 --branch` command.
 func (repo GitGetRepo) ShallowClone() bool {
 	log.Infof("%s: Clone repository '%s'", repo.sha, repo.Url)
 	var serr bytes.Buffer

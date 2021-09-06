@@ -1,63 +1,76 @@
-SHELL := /bin/bash
-GO 		:= GO15VENDOREXPERIMENT=1 GO111MODULE=on GOPROXY=https://proxy.golang.org go
+SHELL = /usr/bin/env bash -o pipefail
+.SHELLFLAGS = -ec
+GO := GOPROXY=https://proxy.golang.org go
 
-VERSION:="0.0.4"
+VERSION:="0.0.5"
 EXE:="git-get"
 BUILD:=`git rev-parse --short HEAD`
 TIME:=`date`
 SRC = $(shell find . -type f -name '*.go' -not -path "./vendor/*")
 
-all: clean mod fmt test build
+all: clean tidy fmt vet test build
+
+##@ General
+
+# The help target prints out all targets with their descriptions organized
+# beneath their categories. The categories are represented by '##@' and the
+# target descriptions by '##'. The awk commands is responsible for reading the
+# entire set of makefiles included in this invocation, looking for lines of the
+# file as xyz: ## something, and then pretty-format the target and help. Then,
+# if there's a line with ##@ something, that gets pretty-printed as a category.
+# More info on the usage of ANSI control characters for terminal formatting:
+# https://en.wikipedia.org/wiki/ANSI_escape_code#SGR_parameters
+# More info on the awk command:
+# http://linuxcommand.org/lc3_adv_awk.php
+
+help: ## Display this help.
+	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
 .PHONY: build
-## build: builds the binary file
-build:
-	@GO111MODULE=on GOOS=darwin GOARCH=amd64 go build \
+build: ## Builds the binary file
+	@GO111MODULE=on GOOS=darwin GOARCH=amd64 $(GO) build \
 		-ldflags="-X 'github.com/isindir/git-get/version.Version=v${VERSION}' \
 		-X 'github.com/isindir/git-get/version.Commit=${BUILD}' \
 		-X 'github.com/isindir/git-get/version.Time=${TIME}' " \
 	  -o ./bin/${EXE}-${VERSION}-osx main.go
-	@GO111MODULE=on GOOS=linux GOARCH=amd64 go build \
+	@GO111MODULE=on GOOS=linux GOARCH=amd64 $(GO) build \
 		-ldflags="-X 'github.com/isindir/git-get/version.Version=v${VERSION}' \
 		-X 'github.com/isindir/git-get/version.Commit=${BUILD}' \
 		-X 'github.com/isindir/git-get/version.Time=${TIME}' " \
 	  -o ./bin/${EXE}-${VERSION}-linux main.go
-	@go build -ldflags="-X 'github.com/isindir/git-get/version.Version=v${VERSION}' \
+	@$(GO) build -ldflags="-X 'github.com/isindir/git-get/version.Version=v${VERSION}' \
 		-X 'github.com/isindir/git-get/version.Commit=${BUILD}' \
 		-X 'github.com/isindir/git-get/version.Time=${TIME}' " \
 		-o ./bin/${EXE} main.go
 
 .PHONY: run
-# run: runs main help
-run:
-	go run main.go
+run: ## Runs main help
+	$(GO) run main.go
 
 .PHONY: test
-## test: placeholder to run unit tests
-test:
+test: ## Placeholder to run unit tests
 	@echo "Running unit tests"
 	@mkdir -p bin
-	go test -cover -coverprofile=bin/c.out ./...
-	go tool cover -html=bin/c.out -o bin/coverage.html
+	$(GO) test -cover -coverprofile=bin/c.out ./...
+	$(GO) tool cover -html=bin/c.out -o bin/coverage.html
 	@echo
 
 .PHONY: check
-## check: runs linting
-check:
+check: ## Runs linting
 	@echo "Linting"
 	@for d in $$(go list ./... | grep -v /vendor/); do golint $${d}; done
 	@echo
 
 .PHONY: fmt
-## fmt: formats go code
-fmt:
-	@echo "Formatting"
-	@gofmt -l -w $(SRC)
-	@echo
+fmt: ## Run go fmt against code.
+	$(GO) fmt ./...
+
+.PHONY: vet
+vet: ## Run go vet against code.
+	$(GO) vet ./...
 
 .PHONY: clean
-## clean: removes build artifacts from source code
-clean:
+clean: ## Removes build artifacts from source code
 	@echo "Cleaning"
 	@rm -fr bin
 	@rm -fr vendor
@@ -65,8 +78,7 @@ clean:
 	@echo
 
 .PHONY: repo-tag
-## repo-tag: tags git repository with latest version
-repo-tag:
+repo-tag: ## Tags git repository with latest version
 	@{ \
 		version=$$( echo ${VERSION} ) ; \
 		set +e ; \
@@ -78,22 +90,19 @@ repo-tag:
 		fi ; \
 	}
 
-.PHONY: mod
-## mod: fetches dependencies
-mod:
+.PHONY: tidy
+tidy: ## Fetches dependencies
 	@echo "Go Mod Vendor"
 	$(GO) mod tidy
-	# $(GO) mod vendor
+	$(GO) mod vendor
 	@echo
 
 .PHONY: echo
-## echo: prints image name and version of the operator
-echo:
+echo: ## Prints image name and version of the operator
 	@echo "git-get ${VERSION} ${BUILD}"
 
 .PHONY: release
-## release: release application
-release:
+release: ## Release application
 	@{ \
 		version=$$( echo ${VERSION} ) ; \
 		exe=$$( echo ${EXE} ) ; \
@@ -108,13 +117,6 @@ release:
 			rm -f chglog.tmp ; \
 		fi ; \
 	}
-
-
-.PHONY: help
-## help: prints this help message
-help:
-	@echo "Usage:"
-	@sed -n 's/^##//p' ${MAKEFILE_LIST} | column -t -s ':' |  sed -e 's/^/ /'
 
 .PHONY: moq
 moq:

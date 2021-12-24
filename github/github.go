@@ -32,7 +32,7 @@ import (
 	"os"
 )
 
-func githubAuth(repositorySha string, ctx context.Context) *github.Client {
+func githubAuth(ctx context.Context, repositorySha string) *github.Client {
 	token, tokenFound := os.LookupEnv("GITHUB_TOKEN")
 	if !tokenFound {
 		log.Fatalf("%s: Error - environment variable GITHUB_TOKEN not found", repositorySha)
@@ -48,16 +48,16 @@ func githubAuth(repositorySha string, ctx context.Context) *github.Client {
 	return git
 }
 
-func RepositoryExists(repositorySha string, ctx context.Context, owner string, repository string) bool {
-	git := githubAuth(repositorySha, ctx)
+func RepositoryExists(ctx context.Context, repositorySha string, owner string, repository string) bool {
+	git := githubAuth(ctx, repositorySha)
 	repo, _, err := git.Repositories.Get(ctx, owner, repository)
 
 	log.Debugf("%s: %+v == %+v", repositorySha, repo, err)
 	return err == nil
 }
 
-func CreateRepository(repositorySha string, ctx context.Context, repository string, mirrorVisibilityMode string, sourceURL string) *github.Repository {
-	git := githubAuth(repositorySha, ctx)
+func CreateRepository(ctx context.Context, repositorySha string, repository string, mirrorVisibilityMode string, sourceURL string) *github.Repository {
+	git := githubAuth(ctx, repositorySha)
 	isPrivate := true
 	if mirrorVisibilityMode == "public" {
 		isPrivate = false

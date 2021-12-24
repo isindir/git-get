@@ -25,7 +25,7 @@ package gitlab
 import (
 	"fmt"
 	log "github.com/sirupsen/logrus"
-	"github.com/xanzy/go-gitlab"
+	gitlab "github.com/xanzy/go-gitlab"
 	"os"
 	"strings"
 )
@@ -49,7 +49,7 @@ func gitlabAuth(repositorySha string, baseUrl string) *gitlab.Client {
 
 // ProjectExists checks if project exists and returns boolean if API call is successful
 func ProjectExists(repositorySha string, baseUrl string, projectName string) bool {
-	log.Debugf("%s: Checking repository '%s' '%s' existance", repositorySha, baseUrl, projectName)
+	log.Debugf("%s: Checking repository '%s' '%s' existence", repositorySha, baseUrl, projectName)
 	git := gitlabAuth(repositorySha, baseUrl)
 
 	prj, _, err := git.Projects.GetProject(projectName, nil, nil)

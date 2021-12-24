@@ -546,9 +546,9 @@ func (repo *Repo) EnsureGithubMirrorExists() {
 	repoNameParts := strings.SplitN(projectNameFullPath, "/", 2)
 	workspaceName, repositoryName := repoNameParts[0], repoNameParts[1]
 	ctx := context.Background()
-	if !github.RepositoryExists(repo.sha, ctx, workspaceName, repositoryName) {
+	if !github.RepositoryExists(ctx, repo.sha, workspaceName, repositoryName) {
 		log.Debugf("%s: Creating new github repository '%s'", repo.sha, repo.mirrorURL)
-		github.CreateRepository(repo.sha, ctx, repositoryName, mirrorVisibilityMode, repo.URL)
+		github.CreateRepository(ctx, repo.sha, repositoryName, mirrorVisibilityMode, repo.URL)
 	} else {
 		log.Debugf("%s: github repository '%s' exists", repo.sha, repo.mirrorURL)
 	}

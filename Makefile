@@ -2,7 +2,7 @@ SHELL = /usr/bin/env bash -o pipefail
 .SHELLFLAGS = -ec
 GO := GOPROXY=https://proxy.golang.org go
 
-VERSION:="0.0.5"
+VERSION:="0.0.6"
 EXE:="git-get"
 BUILD:=`git rev-parse --short HEAD`
 TIME:=`date`
@@ -98,7 +98,7 @@ tidy: ## Fetches dependencies
 	@echo
 
 .PHONY: echo
-echo: ## Prints image name and version of the operator
+echo: ## Prints image name and version of the tool
 	@echo "git-get ${VERSION} ${BUILD}"
 
 .PHONY: release
@@ -117,7 +117,3 @@ release: ## Release application
 			rm -f chglog.tmp ; \
 		fi ; \
 	}
-
-.PHONY: moq
-moq:
-	$(MAKE) -C ./gitget moq

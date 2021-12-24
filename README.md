@@ -44,7 +44,10 @@ configuration file (by default `Gitfile` in current directory of invocation).
 
 # Command line options
 
-```
+## Fetching/Refreshing repositories specified by Gitfile
+
+```bash
+% git-get --help
 'git-get' - all your project repositories
 
 git-get clones/refreshes all you project repositories in
@@ -58,18 +61,67 @@ having different directory name.
 Usage:
   git-get [flags]
   git-get [command]
+  
+Examples:
+
+git get -c 12 -f Gitfile
 
 Available Commands:
+  completion  Generate the autocompletion script for the specified shell
   help        Help about any command
+  mirror      Creates or updates a mirror of repositories
   version     Prints version information
 
 Flags:
-  -c, --concurrency-level int   Git get concurrnecy level (default 1)
-  -f, --config-file string      configuration file (default "$PWD/Gitfile")
-  -h, --help                    help for git-get
-  -l, --log-level string        Logging level [debug|info|warn|error|fatal|panic] (default "info")
-  -s, --shallow                 Shallow clone, can be used in CI to fetch dependencies by ref
-  -t, --stay-on-ref             After refreshing repository from remote stay on ref branch
+  -c, --concurrency-level int        Git get concurrency level (default 1)
+  -f, --config-file string           Configuration file (default "~/Gitfile")
+  -b, --default-main-branch string   Default main branch (default "master")
+  -h, --help                         help for git-get
+  -l, --log-level string             Logging level [debug|info|warn|error|fatal|panic] (default "info")
+  -s, --shallow                      Shallow clone, can be used in CI to fetch dependencies by ref
+  -t, --stay-on-ref                  After refreshing repository from remote stay on ref branch
 
 Use "git-get [command] --help" for more information about a command.
+```
+
+## Creating mirror repositories in git provider
+
+```bash
+git-get mirror --help
+
+Creates or updates a mirror of repositories specified by configuration file in a specified git provider cloud.
+
+Different git providers have different workspace/project/organization/team/user/repository
+structure/terminlogy/relations.
+
+Notes:
+
+* All providers: ssh key is used to clone/push git repositories, where environment
+  variables are used to interrogate API.
+* Gitlab: ssh key configured and environment variable GITLAB_TOKEN defined.
+* Github: ssh key configured and environment variable GITHUB_TOKEN defined.
+* Bitbucket: ssh key configured and environment variables BITBUCKET_USERNAME and BITBUCKET_TOKEN (password) defined.
+* Bitbucket: Application won't create Project in Bitbucket if project is specified but missing.
+  It assumes the Key of project to be constructed from it's name as Uppercase text containing
+  only [A-Z0-9_] characters, all the rest of the characters from Project Name will be removed.
+
+Usage:
+  git-get mirror [flags]
+
+Examples:
+
+git get mirror -f Gitfile -u "git@github.com:acmeorg" -m "github"
+git-get mirror -c 2 -f Gitfile -l debug -u "git@gitlab.com:acmeorg/mirrors"
+git-get mirror -c 2 -f Gitfile -l debug -u "git@bitbucket.com:acmeorg" -m "bitbucket" -b "mirrors"
+
+Flags:
+  -b, --bitbucket-mirror-project-name string   Bitbucket mirror project name (only effective for Bitbucket and is optional)
+  -c, --concurrency-level int                  Git get concurrency level (default 1)
+  -f, --config-file string                     Configuration file (default "~/Gitfile")
+  -h, --help                                   help for mirror
+  -l, --log-level string                       Logging level [debug|info|warn|error|fatal|panic] (default "info")
+  -m, --mirror-provider string                 Git mirror provider name [gitlab|github|bitbucket] (default "gitlab")
+  -u, --mirror-url string                      Private Mirror URL prefix to push repositories to (example: git@github.com:acmeorg)
+  -v, --mirror-visibility-mode string          Mirror visibility mode [private|internal|public] (default "private")
+  -p, --push                                   Push to remote mirror repositories (default true)
 ```

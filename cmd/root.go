@@ -1,5 +1,5 @@
 /*
-Copyright © 2020 Eriks Zelenka <isindir@users.sourceforge.net>
+Copyright © 2020-2021 Eriks Zelenka <isindir@users.sourceforge.net>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -39,6 +39,12 @@ var logLevel string
 var stayOnRef bool
 var shallow bool
 var concurrencyLevel int
+var pushMirror bool
+var mirrorRootURL string
+var defaultMainBranch string
+var mirrorProvider string
+var mirrorVisibilityMode string
+var mirrorBitbucketProjectName string
 
 var levels = map[string]logrus.Level{
 	"panic": log.PanicLevel,
@@ -62,15 +68,15 @@ Yaml formatted configuration file specifies directory
 structure of the project. git-get allows to create symlinks
 to cloned repositories, clone one repository multiple time
 having different directory name.`,
-	// Uncomment the following line if your bare application
-	// has an action associated with it:
+	Example: `
+git get -c 12 -f Gitfile`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if _, err := os.Stat(cfgFile); os.IsNotExist(err) {
 			log.Fatalln(err)
 			os.Exit(1)
 		}
 		initLogging(logLevel)
-		gitget.GitGetRepositories(cfgFile, concurrencyLevel, stayOnRef, shallow)
+		gitget.GetRepositories(cfgFile, concurrencyLevel, stayOnRef, shallow, defaultMainBranch)
 	},
 }
 
@@ -95,9 +101,10 @@ func init() {
 	}
 
 	defaultValue := filepath.Join(wdir, "Gitfile")
-	rootCmd.Flags().StringVarP(&cfgFile, "config-file", "f", defaultValue, "configuration file")
+	rootCmd.Flags().StringVarP(&cfgFile, "config-file", "f", defaultValue, "Configuration file")
 	rootCmd.Flags().StringVarP(&logLevel, "log-level", "l", "info", "Logging level [debug|info|warn|error|fatal|panic]")
-	rootCmd.Flags().IntVarP(&concurrencyLevel, "concurrency-level", "c", 1, "Git get concurrnecy level")
+	rootCmd.Flags().IntVarP(&concurrencyLevel, "concurrency-level", "c", 1, "Git get concurrency level")
 	rootCmd.Flags().BoolVarP(&stayOnRef, "stay-on-ref", "t", false, "After refreshing repository from remote stay on ref branch")
 	rootCmd.Flags().BoolVarP(&shallow, "shallow", "s", false, "Shallow clone, can be used in CI to fetch dependencies by ref")
+	rootCmd.Flags().StringVarP(&defaultMainBranch, "default-main-branch", "b", "master", "Default main branch")
 }

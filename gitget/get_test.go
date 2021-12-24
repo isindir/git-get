@@ -19,7 +19,7 @@ type testGitGetRepo struct {
 }
 
 func TestSetDefaultRef(t *testing.T) {
-	repo := GitGetRepo{}
+	repo := Repo{}
 
 	// Test setting to default if not specified
 	repo.SetDefaultRef()
@@ -39,16 +39,16 @@ func TestGetRepoLocalName(t *testing.T) {
 
 	// Test extracting altname from git repo name, if altname is not specified
 	var altname string
-	for repoUrl, expectedAltName := range repoUrls {
-		repo := GitGetRepo{}
-		repo.Url = repoUrl
+	for repoURL, expectedAltName := range repoUrls {
+		repo := Repo{}
+		repo.URL = repoURL
 		altname = repo.GetRepoLocalName()
 		if altname != expectedAltName {
 			t.Errorf("Expected '%s', got: '%s'", expectedAltName, altname)
 		}
 	}
 
-	repo := GitGetRepo{}
+	repo := Repo{}
 	repo.AltName = "abc"
 	altname = repo.GetRepoLocalName()
 	if altname != "abc" {
@@ -58,16 +58,16 @@ func TestGetRepoLocalName(t *testing.T) {
 
 func TestSetRepoLocalName(t *testing.T) {
 
-	for repoUrl, expectedAltName := range repoUrls {
-		repo := GitGetRepo{}
-		repo.Url = repoUrl
+	for repoURL, expectedAltName := range repoUrls {
+		repo := Repo{}
+		repo.URL = repoURL
 		repo.SetRepoLocalName()
 		if repo.AltName != expectedAltName {
 			t.Errorf("Expected '%s', got: '%s'", expectedAltName, repo.AltName)
 		}
 	}
 
-	repo := GitGetRepo{}
+	repo := Repo{}
 	repo.AltName = "abc"
 	repo.SetRepoLocalName()
 	if repo.AltName != "abc" {
@@ -76,8 +76,8 @@ func TestSetRepoLocalName(t *testing.T) {
 }
 
 func TestSetSha(t *testing.T) {
-	repo := GitGetRepo{}
-	repo.Url = "git@github.com:isindir/git-get.git"
+	repo := Repo{}
+	repo.URL = "git@github.com:isindir/git-get.git"
 	repo.Ref = "master"
 	repo.fullPath = "/Users/erikszelenka/workspace/eriks/git-get/git-get"
 
@@ -88,7 +88,7 @@ func TestSetSha(t *testing.T) {
 }
 
 func TestSetRepoFullPath(t *testing.T) {
-	repo := GitGetRepo{
+	repo := Repo{
 		Path:    "qqq",
 		AltName: "abc",
 	}
@@ -116,7 +116,7 @@ func TestPathExists(t *testing.T) {
 
 func TestRepoPathExists(t *testing.T) {
 	// Test path exists
-	repo := GitGetRepo{
+	repo := Repo{
 		fullPath: ".",
 	}
 

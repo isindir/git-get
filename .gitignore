@@ -1,7 +1,9 @@
 # Custom
+env
 Gitfile
 bin/
 chglog.tmp
+gitlab_api_postman.json
 
 # Created by https://www.gitignore.io/api/go,vim,linux,macos,emacs,intellij+all
 # Edit at https://www.gitignore.io/?templates=go,vim,linux,macos,emacs,intellij+all

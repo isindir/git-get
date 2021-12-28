@@ -66,7 +66,7 @@ var rootCmd = &cobra.Command{
 	Short: "'git-get' - all your project repositories",
 	Long: `'git-get' - all your project repositories
 
-git-get clone/refreshe all your local project repositories in
+git-get clone/refresh all your local project repositories in
 one go.
 
 Yaml formatted configuration file specifies directory

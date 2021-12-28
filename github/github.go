@@ -66,9 +66,11 @@ func CreateRepository(
 ) *github.Repository {
 	git := githubAuth(ctx, repositorySha)
 	isPrivate := true
+
 	if mirrorVisibilityMode == "public" {
 		isPrivate = false
 	}
+
 	repoDef := &github.Repository{
 		Name:        github.String(repository),
 		Private:     github.Bool(isPrivate),
@@ -86,28 +88,21 @@ func CreateRepository(
 	return resultingRepository
 }
 
-func FetchOwnerRepos(
+func fetchOrgRepos(
 	ctx context.Context,
-	repoSha, owner, githubVisibility, githubAffiliation string,
+	git *github.Client,
+	repoSha, owner string,
 ) []*github.Repository {
-	log.Debugf("%s: Specified owner: '%s'", repoSha, owner)
-	git := githubAuth(ctx, repoSha)
 	var repoList []*github.Repository
 
-	opts := &github.RepositoryListOptions{
-		// Default: all. Can be one of all, public, or private via CLI flags
-		Visibility: githubVisibility,
-		// Comma-separated list of values. Can include: owner, collaborator, or organization_member
-		// Default: owner,collaborator,organization_member
-		// Can be set via CLI flags
-		Affiliation: githubAffiliation,
+	opts := &github.RepositoryListByOrgOptions{
 		ListOptions: github.ListOptions{
 			Page: 0,
 		},
 	}
 
 	for {
-		repos, res, err := git.Repositories.List(ctx, owner, opts)
+		repos, res, err := git.Repositories.ListByOrg(ctx, owner, opts)
 		log.Debugf(
 			"%s: NextPage/PrevPage/FirstPage/LastPage '%d/%d/%d/%d'\n",
 			repoSha, res.NextPage, res.PrevPage, res.FirstPage, res.LastPage)
@@ -129,6 +124,83 @@ func FetchOwnerRepos(
 			log.Debugf("%s: Error fetching repositories for '%s': %+v\n", repoSha, owner, err)
 			break
 		}
+	}
+
+	return repoList
+}
+
+func fetchUserRepos(
+	ctx context.Context,
+	git *github.Client,
+	repoSha, owner, githubVisibility, githubAffiliation string,
+) []*github.Repository {
+	var repoList []*github.Repository
+
+	opts := &github.RepositoryListOptions{
+		// Default: all. Can be one of all, public, or private via CLI flags
+		Visibility: githubVisibility,
+		// Comma-separated list of values. Can include: owner, collaborator, or organization_member
+		// Default: owner,collaborator,organization_member
+		// Can be set via CLI flags
+		Affiliation: githubAffiliation,
+		ListOptions: github.ListOptions{
+			Page: 0,
+		},
+	}
+
+	for {
+		repos, res, err := git.Repositories.List(ctx, "", opts)
+		log.Debugf(
+			"%s: NextPage/PrevPage/FirstPage/LastPage '%d/%d/%d/%d'\n",
+			repoSha, res.NextPage, res.PrevPage, res.FirstPage, res.LastPage)
+		for repo := 0; repo < len(repos); repo++ {
+			log.Debugf("%s: (%d) Repo FullName '%s'", repoSha, opts.ListOptions.Page, *repos[repo].FullName)
+		}
+		repoList = append(repoList, repos...)
+		log.Debugf("%s: Found '%d' repositories owned by '%s'", repoSha, len(repos), owner)
+
+		opts.ListOptions = github.ListOptions{
+			Page: res.NextPage,
+		}
+
+		if res.NextPage == 0 {
+			break
+		}
+
+		if err != nil {
+			log.Debugf("%s: Error fetching repositories for '%s': %+v\n", repoSha, owner, err)
+			break
+		}
+	}
+
+	return repoList
+}
+
+func FetchOwnerRepos(
+	ctx context.Context,
+	repoSha, owner, githubVisibility, githubAffiliation string,
+) []*github.Repository {
+	log.Debugf("%s: Specified owner: '%s'", repoSha, owner)
+	git := githubAuth(ctx, repoSha)
+	var repoList []*github.Repository
+	var userType string
+
+	user, _, err := git.Users.Get(ctx, owner)
+	if err != nil {
+		log.Debugf("%s: Owner '%s' not found: '%+v'", repoSha, owner, err)
+	} else {
+		log.Debugf("%s: Owner '%s', Type: '%s'", repoSha, owner, *user.Type)
+		userType = *user.Type
+	}
+
+	switch userType {
+	case "Organization":
+		repoList = fetchOrgRepos(ctx, git, repoSha, owner)
+	case "User":
+		repoList = fetchUserRepos(ctx, git, repoSha, owner, githubVisibility, githubAffiliation)
+	default:
+		log.Fatalf("%s: Error: unknown '%s' user type", repoSha, userType)
+		os.Exit(1)
 	}
 
 	return repoList

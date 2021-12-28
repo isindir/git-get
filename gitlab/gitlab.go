@@ -79,7 +79,9 @@ func GetProjectNamespace(repositorySha string, baseUrl string, projectNameFullPa
 
 	namespaceObject, _, err := git.Namespaces.GetNamespace(namespaceFullPath, nil, nil)
 
-	log.Debugf("%s: Getting namespace '%s': resulting namespace object: '%+v'", repositorySha, namespaceFullPath, namespaceObject)
+	log.Debugf(
+		"%s: Getting namespace '%s': resulting namespace object: '%+v'",
+		repositorySha, namespaceFullPath, namespaceObject)
 
 	if err != nil {
 		return nil, namespaceFullPath
@@ -111,7 +113,9 @@ func CreateProject(
 
 	project, _, err := git.Projects.CreateProject(p)
 	if err != nil {
-		log.Fatalf("%s: Error - while trying to create gitlab project '%s': '%s'", repositorySha, projectName, err)
+		log.Fatalf(
+			"%s: Error - while trying to create gitlab project '%s': '%s'",
+			repositorySha, projectName, err)
 		os.Exit(1)
 	}
 
@@ -188,7 +192,9 @@ func processSubgroups(
 	}
 
 	for {
-		log.Debugf("%s: Fetching group '%d:%s' subgroups - page '%d'", repoSha, groupID, groupName, subGrpOpt.ListOptions.Page)
+		log.Debugf(
+			"%s: Fetching group '%d:%s' subgroups - page '%d'",
+			repoSha, groupID, groupName, subGrpOpt.ListOptions.Page)
 		groups, res, err := git.Groups.ListSubgroups(groupID, subGrpOpt, nil)
 		if err != nil {
 			log.Errorf(

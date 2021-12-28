@@ -37,13 +37,14 @@ var configGenCmd = &cobra.Command{
 	Use:   "config-gen",
 	Short: "Create Gitfile configuration file from git provider",
 	Long: `
-Create 'Gitfile'' configuration file dynamically from git provider by specifying top level URL of the organisation organization,
-user or for Gitlab provider Group name.
+Create 'Gitfile' configuration file dynamically from git provider by specifying
+top level URL of the organisation organization, user or for Gitlab provider Group name.
 
-
+* Github: Environment variable GITHUB_TOKEN defined.
+* Bitbucket: Environment variables BITBUCKET_USERNAME and BITBUCKET_TOKEN (password) defined.
+* Gitlab: Environment variable GITLAB_TOKEN defined.
 * Gitlab: provider allows to create hierarchy of groups, 'git-get' is capable of fetching
-  this hierarchy to 'Gifile' from any level visible to the user (see examples).
-`,
+  this hierarchy to 'Gifile' from any level visible to the user (see examples).`,
 	Example: `
 git-get config-gen -f Gitfile -p "gitlab" -u "git@gitlab.com:johndoe" -t misc -l debug
 git-get config-gen -f Gitfile -p "gitlab" -u "git@gitlab.com:AcmeOrg" -t misc -l debug
@@ -122,7 +123,8 @@ func init() {
 		&configGenParams.GithubAffiliation,
 		"github-affiliation",
 		"owner,collaborator,organization_member",
-		"Github: affiliation - comma-separated list of values. Can include: owner, collaborator, or organization_member")
+		`Github: affiliation - comma-separated list of values.
+Can include: owner, collaborator, or organization_member`)
 	/*
 		MAYBE: implement for bitbucket to allow subset of repositories
 		configGenCmd.Flags().StringVar(

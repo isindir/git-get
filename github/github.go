@@ -57,7 +57,13 @@ func RepositoryExists(ctx context.Context, repositorySha string, owner string, r
 	return err == nil
 }
 
-func CreateRepository(ctx context.Context, repositorySha string, repository string, mirrorVisibilityMode string, sourceURL string) *github.Repository {
+func CreateRepository(
+	ctx context.Context,
+	repositorySha string,
+	repository string,
+	mirrorVisibilityMode string,
+	sourceURL string,
+) *github.Repository {
 	git := githubAuth(ctx, repositorySha)
 	isPrivate := true
 	if mirrorVisibilityMode == "public" {
@@ -71,7 +77,9 @@ func CreateRepository(ctx context.Context, repositorySha string, repository stri
 
 	resultingRepository, _, err := git.Repositories.Create(ctx, "", repoDef)
 	if err != nil {
-		log.Fatalf("%s: Error - while trying to create github repository '%s': '%s'", repositorySha, repository, err)
+		log.Fatalf(
+			"%s: Error - while trying to create github repository '%s': '%s'",
+			repositorySha, repository, err)
 		os.Exit(1)
 	}
 
@@ -100,7 +108,9 @@ func FetchOwnerRepos(
 
 	for {
 		repos, res, err := git.Repositories.List(ctx, owner, opts)
-		log.Debugf("%s: NextPage/PrevPage/FirstPage/LastPage '%d/%d/%d/%d'\n", repoSha, res.NextPage, res.PrevPage, res.FirstPage, res.LastPage)
+		log.Debugf(
+			"%s: NextPage/PrevPage/FirstPage/LastPage '%d/%d/%d/%d'\n",
+			repoSha, res.NextPage, res.PrevPage, res.FirstPage, res.LastPage)
 		for repo := 0; repo < len(repos); repo++ {
 			log.Debugf("%s: (%d) Repo FullName '%s'", repoSha, opts.ListOptions.Page, *repos[repo].FullName)
 		}

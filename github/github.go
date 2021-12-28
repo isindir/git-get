@@ -116,7 +116,7 @@ func FetchOwnerRepos(
 		}
 
 		if err != nil {
-			log.Debugf("%s: Error fetching repositories for '%s': %+v\n", owner, err)
+			log.Debugf("%s: Error fetching repositories for '%s': %+v\n", repoSha, owner, err)
 			break
 		}
 	}

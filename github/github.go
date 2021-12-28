@@ -25,11 +25,12 @@ package github
 // UPDATE_HERE
 import (
 	"fmt"
+	"os"
+
 	"github.com/google/go-github/v41/github"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
-	"os"
 )
 
 func githubAuth(ctx context.Context, repositorySha string) *github.Client {
@@ -56,7 +57,13 @@ func RepositoryExists(ctx context.Context, repositorySha string, owner string, r
 	return err == nil
 }
 
-func CreateRepository(ctx context.Context, repositorySha string, repository string, mirrorVisibilityMode string, sourceURL string) *github.Repository {
+func CreateRepository(
+	ctx context.Context,
+	repositorySha string,
+	repository string,
+	mirrorVisibilityMode string,
+	sourceURL string,
+) *github.Repository {
 	git := githubAuth(ctx, repositorySha)
 	isPrivate := true
 	if mirrorVisibilityMode == "public" {
@@ -70,9 +77,59 @@ func CreateRepository(ctx context.Context, repositorySha string, repository stri
 
 	resultingRepository, _, err := git.Repositories.Create(ctx, "", repoDef)
 	if err != nil {
-		log.Fatalf("%s: Error - while trying to create github repository '%s': '%s'", repositorySha, repository, err)
+		log.Fatalf(
+			"%s: Error - while trying to create github repository '%s': '%s'",
+			repositorySha, repository, err)
 		os.Exit(1)
 	}
 
 	return resultingRepository
+}
+
+func FetchOwnerRepos(
+	ctx context.Context,
+	repoSha, owner, githubVisibility, githubAffiliation string,
+) []*github.Repository {
+	log.Debugf("%s: Specified owner: '%s'", repoSha, owner)
+	git := githubAuth(ctx, repoSha)
+	var repoList []*github.Repository
+
+	opts := &github.RepositoryListOptions{
+		// Default: all. Can be one of all, public, or private via CLI flags
+		Visibility: githubVisibility,
+		// Comma-separated list of values. Can include: owner, collaborator, or organization_member
+		// Default: owner,collaborator,organization_member
+		// Can be set via CLI flags
+		Affiliation: githubAffiliation,
+		ListOptions: github.ListOptions{
+			Page: 0,
+		},
+	}
+
+	for {
+		repos, res, err := git.Repositories.List(ctx, owner, opts)
+		log.Debugf(
+			"%s: NextPage/PrevPage/FirstPage/LastPage '%d/%d/%d/%d'\n",
+			repoSha, res.NextPage, res.PrevPage, res.FirstPage, res.LastPage)
+		for repo := 0; repo < len(repos); repo++ {
+			log.Debugf("%s: (%d) Repo FullName '%s'", repoSha, opts.ListOptions.Page, *repos[repo].FullName)
+		}
+		repoList = append(repoList, repos...)
+		log.Debugf("%s: Found '%d' repositories owned by '%s'", repoSha, len(repos), owner)
+
+		opts.ListOptions = github.ListOptions{
+			Page: res.NextPage,
+		}
+
+		if res.NextPage == 0 {
+			break
+		}
+
+		if err != nil {
+			log.Debugf("%s: Error fetching repositories for '%s': %+v\n", repoSha, owner, err)
+			break
+		}
+	}
+
+	return repoList
 }

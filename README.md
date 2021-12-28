@@ -48,9 +48,10 @@ configuration file (by default `Gitfile` in current directory of invocation).
 
 ```bash
 % git-get --help
+
 'git-get' - all your project repositories
 
-git-get clones/refreshes all you project repositories in
+git-get clone/refresh all your local project repositories in
 one go.
 
 Yaml formatted configuration file specifies directory
@@ -61,15 +62,16 @@ having different directory name.
 Usage:
   git-get [flags]
   git-get [command]
-  
+
 Examples:
 
 git get -c 12 -f Gitfile
 
 Available Commands:
   completion  Generate the autocompletion script for the specified shell
+  config-gen  Create Gitfile configuration file from git provider
   help        Help about any command
-  mirror      Creates or updates a mirror of repositories
+  mirror      Create or update repositories mirror in a specified git provider cloud
   version     Prints version information
 
 Flags:
@@ -84,12 +86,54 @@ Flags:
 Use "git-get [command] --help" for more information about a command.
 ```
 
+## Generating Gitfile from git provider
+
+```bash
+% git-get config-gen --help
+
+Create 'Gitfile' configuration file dynamically from git provider by specifying
+top level URL of the organisation organization, user or for Gitlab provider Group name.
+
+* Github: Environment variable GITHUB_TOKEN defined.
+* Bitbucket: Environment variables BITBUCKET_USERNAME and BITBUCKET_TOKEN (password) defined.
+* Gitlab: Environment variable GITLAB_TOKEN defined.
+* Gitlab: provider allows to create hierarchy of groups, 'git-get' is capable of fetching
+  this hierarchy to 'Gifile' from any level visible to the user (see examples).
+
+Usage:
+  git-get config-gen [flags]
+
+Examples:
+
+git-get config-gen -f Gitfile -p "gitlab" -u "git@gitlab.com:johndoe" -t misc -l debug
+git-get config-gen -f Gitfile -p "gitlab" -u "git@gitlab.com:AcmeOrg" -t misc -l debug
+git-get config-gen -f Gitfile -p "gitlab" -u "git@gitlab.com:AcmeOrg/kube"
+git-get config-gen -f Gitfile -p "bitbucket" -u "git@bitbucket.com:AcmeOrg" -t AcmeOrg
+git-get config-gen -f Gitfile -p "github" -u "git@github.com:johndoe" -t johndoe -l debug
+git-get config-gen -f Gitfile -p "github" -u "git@github.com:AcmeOrg" -t AcmeOrg -l debug
+
+Flags:
+      --bitbucket-role string                       Bitbucket: Filter repositories by role [owner|admin|contributor|member] (default "member")
+  -f, --config-file string                          Configuration file (default "~/Gitfile")
+  -p, --config-provider string                      Git provider name [gitlab|github|bitbucket] (default "gitlab")
+  -u, --config-url string                           Private URL prefix to construct Gitfile from (example: git@github.com:acmeorg), provider specific.
+      --github-affiliation string                   Github: affiliation - comma-separated list of values.
+                                                    Can include: owner, collaborator, or organization_member (default "owner,collaborator,organization_member")
+      --github-visibility string                    Github: visibility [all|public|private] (default "all")
+      --gitlab-groups-minimal-access-level string   Gitlab: groups minimal access level [unspecified|min|guest|reporter|developer|maintainer|owner] (default "unspecified")
+      --gitlab-owned                                Gitlab: only traverse groups and repositories owned by user
+      --gitlab-project-visibility string            Gitlab: project visibility [public|internal|private]
+  -h, --help                                        help for config-gen
+  -l, --log-level string                            Logging level [debug|info|warn|error|fatal|panic] (default "info")
+  -t, --target-clone-path string                    Target clone path used to set 'path' for each repository in Gitfile
+```
+
 ## Creating mirror repositories in git provider
 
 ```bash
 git-get mirror --help
 
-Creates or updates a mirror of repositories specified by configuration file in a specified git provider cloud.
+Create or update repositories mirror in a specified specified git provider cloud using configuration file.
 
 Different git providers have different workspace/project/organization/team/user/repository
 structure/terminlogy/relations.
@@ -110,18 +154,18 @@ Usage:
 
 Examples:
 
-git get mirror -f Gitfile -u "git@github.com:acmeorg" -m "github"
+git get mirror -f Gitfile -u "git@github.com:acmeorg" -p "github"
 git-get mirror -c 2 -f Gitfile -l debug -u "git@gitlab.com:acmeorg/mirrors"
-git-get mirror -c 2 -f Gitfile -l debug -u "git@bitbucket.com:acmeorg" -m "bitbucket" -b "mirrors"
+git-get mirror -c 2 -f Gitfile -l debug -u "git@bitbucket.com:acmeorg" -p "bitbucket" -b "mirrors"
 
 Flags:
   -b, --bitbucket-mirror-project-name string   Bitbucket mirror project name (only effective for Bitbucket and is optional)
   -c, --concurrency-level int                  Git get concurrency level (default 1)
   -f, --config-file string                     Configuration file (default "~/Gitfile")
+  -d, --dry-run                                Dry-run - do not push to remote mirror repositories
   -h, --help                                   help for mirror
   -l, --log-level string                       Logging level [debug|info|warn|error|fatal|panic] (default "info")
-  -m, --mirror-provider string                 Git mirror provider name [gitlab|github|bitbucket] (default "gitlab")
+  -p, --mirror-provider string                 Git mirror provider name [gitlab|github|bitbucket] (default "gitlab")
   -u, --mirror-url string                      Private Mirror URL prefix to push repositories to (example: git@github.com:acmeorg)
   -v, --mirror-visibility-mode string          Mirror visibility mode [private|internal|public] (default "private")
-  -p, --push                                   Push to remote mirror repositories (default true)
 ```

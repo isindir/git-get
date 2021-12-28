@@ -24,10 +24,13 @@ package gitlab
 
 import (
 	"fmt"
+	"net/url"
+	"os"
+	"path/filepath"
+	"strings"
+
 	log "github.com/sirupsen/logrus"
 	gitlab "github.com/xanzy/go-gitlab"
-	"os"
-	"strings"
 )
 
 func gitlabAuth(repositorySha string, baseUrl string) *gitlab.Client {
@@ -76,7 +79,9 @@ func GetProjectNamespace(repositorySha string, baseUrl string, projectNameFullPa
 
 	namespaceObject, _, err := git.Namespaces.GetNamespace(namespaceFullPath, nil, nil)
 
-	log.Debugf("%s: Getting namespace '%s': resulting namespace object: '%+v'", repositorySha, namespaceFullPath, namespaceObject)
+	log.Debugf(
+		"%s: Getting namespace '%s': resulting namespace object: '%+v'",
+		repositorySha, namespaceFullPath, namespaceObject)
 
 	if err != nil {
 		return nil, namespaceFullPath
@@ -108,9 +113,250 @@ func CreateProject(
 
 	project, _, err := git.Projects.CreateProject(p)
 	if err != nil {
-		log.Fatalf("%s: Error - while trying to create gitlab project '%s': '%s'", repositorySha, projectName, err)
+		log.Fatalf(
+			"%s: Error - while trying to create gitlab project '%s': '%s'",
+			repositorySha, projectName, err)
 		os.Exit(1)
 	}
 
 	return project
+}
+
+func getGroupID(repoSha string, git *gitlab.Client, groupName string) (int, string, error) {
+	// Fetch group ID needed for other operations
+	_, shortName := filepath.Split(groupName)
+	//escapedGroupName := url.QueryEscape(groupName)
+	escapedGroupName := url.QueryEscape(shortName)
+
+	foundGroups, _, err := git.Groups.SearchGroup(escapedGroupName)
+	if err != nil {
+		return 0, "", err
+	}
+	log.Debugf("%s: Found '%d' groups for '%s'", repoSha, len(foundGroups), groupName)
+	for group := 0; group < len(foundGroups); group++ {
+		log.Debugf(
+			"%s: Checking group '%d:%s' to be as specified",
+			repoSha, foundGroups[group].ID, foundGroups[group].FullName)
+		if groupName == strings.Replace(foundGroups[group].FullName, " ", "", -1) {
+			return foundGroups[group].ID, foundGroups[group].FullName, nil
+		}
+	}
+
+	return 0, "", fmt.Errorf("%s: Group with name '%s' not found", repoSha, groupName)
+}
+
+func processSubgroups(
+	repoSha string,
+	git *gitlab.Client,
+	groupID int,
+	groupName string,
+	glRepoList []*gitlab.Project,
+	gitlabOwned bool,
+	gitlabVisibility, gitlabMinAccessLevel string,
+) []*gitlab.Project {
+	// Fetch all subgroups of this group and recurse
+	var subGroups []*gitlab.Group
+
+	lstOpts := gitlab.ListOptions{
+		Page:    0,
+		PerPage: 30,
+	}
+
+	subGrpOpt := &gitlab.ListSubgroupsOptions{
+		ListOptions:  lstOpts,
+		AllAvailable: gitlab.Bool(true),
+		TopLevelOnly: gitlab.Bool(false),
+		Owned:        gitlab.Bool(gitlabOwned),
+	}
+	switch gitlabMinAccessLevel {
+	case "min":
+		minAccessLevel := gitlab.MinimalAccessPermissions
+		subGrpOpt.MinAccessLevel = &minAccessLevel
+	case "guest":
+		minAccessLevel := gitlab.GuestPermissions
+		subGrpOpt.MinAccessLevel = &minAccessLevel
+	case "reporter":
+		minAccessLevel := gitlab.ReporterPermissions
+		subGrpOpt.MinAccessLevel = &minAccessLevel
+	case "developer":
+		minAccessLevel := gitlab.DeveloperPermissions
+		subGrpOpt.MinAccessLevel = &minAccessLevel
+	case "maintainer":
+		minAccessLevel := gitlab.MaintainerPermissions
+		subGrpOpt.MinAccessLevel = &minAccessLevel
+	case "owner":
+		minAccessLevel := gitlab.OwnerPermissions
+		subGrpOpt.MinAccessLevel = &minAccessLevel
+	default:
+		log.Debugf("%s: Won't set MinAccessLevel - value passed is '%s'", repoSha, gitlabMinAccessLevel)
+	}
+
+	for {
+		log.Debugf(
+			"%s: Fetching group '%d:%s' subgroups - page '%d'",
+			repoSha, groupID, groupName, subGrpOpt.ListOptions.Page)
+		groups, res, err := git.Groups.ListSubgroups(groupID, subGrpOpt, nil)
+		if err != nil {
+			log.Errorf(
+				"%s: Error while trying to get subgroups for '%d:%s': %s",
+				repoSha, groupID, groupName, err,
+			)
+			break
+		}
+		log.Debugf(
+			"%s: NextPage/PrevPage/CurrentPage/TotalPages '%d/%d/%d/%d'\n",
+			repoSha, res.NextPage, res.PreviousPage, res.CurrentPage, res.TotalPages)
+
+		subGroups = append(subGroups, groups...)
+		log.Debugf("%s: Page %d: subgroups: %+v", repoSha, res.CurrentPage, subGroups)
+		log.Debugf("%s: Page %d: current subgroups %+v", repoSha, res.CurrentPage, groups)
+
+		// reached the end of page list
+		if res.NextPage == 0 {
+			break
+		}
+
+		// Prepare pagination options for next request
+		lstOpts.Page = res.NextPage
+		subGrpOpt.ListOptions = lstOpts
+	}
+
+	log.Debugf("%s: %+v", repoSha, subGroups)
+	for currentGroup := 0; currentGroup < len(subGroups); currentGroup++ {
+		log.Debugf(
+			"%s: Recursive getRepositories call for subgroup '%d:%s'",
+			repoSha, subGroups[currentGroup].ID, subGroups[currentGroup].FullName)
+
+		glRepoList = getRepositories(
+			repoSha,
+			git,
+			subGroups[currentGroup].ID,
+			subGroups[currentGroup].FullName,
+			glRepoList,
+			gitlabOwned,
+			gitlabVisibility,
+			gitlabMinAccessLevel,
+		)
+	}
+
+	return glRepoList
+}
+
+func appendGroupsProjects(
+	repoSha string,
+	git *gitlab.Client,
+	groupID int,
+	groupName string,
+	glRepoList []*gitlab.Project,
+	gitlabOwned bool,
+	gitlabVisibility string,
+) []*gitlab.Project {
+	// Fetch all subgroup projects
+	var subGroupProjects []*gitlab.Project
+
+	lstOpts := gitlab.ListOptions{
+		Page:    0,
+		PerPage: 30,
+	}
+
+	// Fetch all projects(repositories) of the group and append to main list
+	// https://docs.gitlab.com/ee/api/groups.html#list-a-groups-projects
+	prjOpt := &gitlab.ListGroupProjectsOptions{
+		ListOptions: lstOpts,
+		Owned:       gitlab.Bool(gitlabOwned),
+		Simple:      gitlab.Bool(true),
+	}
+	switch gitlabVisibility {
+	case "private":
+		vis := gitlab.PrivateVisibility
+		prjOpt.Visibility = &vis
+	case "internal":
+		vis := gitlab.InternalVisibility
+		prjOpt.Visibility = &vis
+	case "public":
+		vis := gitlab.PublicVisibility
+		prjOpt.Visibility = &vis
+	default:
+		log.Debugf("%s: Won't set Visibility - value passed is '%s'", repoSha, gitlabVisibility)
+	}
+
+	for {
+		projects, res, err := git.Groups.ListGroupProjects(groupID, prjOpt)
+		if err != nil {
+			log.Errorf(
+				"%s: Error while fetching groups '%s' repositories: %s",
+				repoSha, groupName, err,
+			)
+			break
+		}
+		log.Debugf(
+			"%s: NextPage/PrevPage/CurrentPage/TotalPages '%d/%d/%d/%d'\n",
+			repoSha, res.NextPage, res.PreviousPage, res.CurrentPage, res.TotalPages)
+
+		subGroupProjects = append(subGroupProjects, projects...)
+
+		log.Debugf("%s: Page %d: subprojects: %+v", repoSha, res.CurrentPage, subGroupProjects)
+		log.Debugf("%s: Page %d: current projects %+v", repoSha, res.CurrentPage, projects)
+
+		// reached the end of page list
+		if res.NextPage == 0 {
+			break
+		}
+
+		// Prepare pagination options for next request
+		lstOpts.Page = res.NextPage
+		prjOpt.ListOptions = lstOpts
+	}
+
+	glRepoList = append(glRepoList, subGroupProjects...)
+	log.Debugf("%s: Collected projects len: '%d'", repoSha, len(glRepoList))
+
+	return glRepoList
+}
+
+// Recursive function via processSubgroups
+func getRepositories(
+	repoSha string,
+	git *gitlab.Client,
+	groupID int,
+	groupName string,
+	glRepoList []*gitlab.Project,
+	gitlabOwned bool,
+	gitlabVisibility, gitlabMinAccessLevel string,
+) []*gitlab.Project {
+	log.Debugf("%s: Ready to start processing subgroups for '%d:%s'", repoSha, groupID, groupName)
+	glRepoList = processSubgroups(
+		repoSha, git, groupID, groupName, glRepoList, gitlabOwned, gitlabVisibility, gitlabMinAccessLevel)
+
+	log.Debugf("%s: Ready to start processing projects for '%d:%s'", repoSha, groupID, groupName)
+	glRepoList = appendGroupsProjects(repoSha, git, groupID, groupName, glRepoList, gitlabOwned, gitlabVisibility)
+
+	return glRepoList
+}
+
+// FetchOwnerRepos - fetches all repositories for the specified gitlab path
+func FetchOwnerRepos(
+	repoSha, baseURL, groupName string,
+	gitlabOwned bool,
+	gitlabVisibility, gitlabMinAccessLevel string,
+) []*gitlab.Project {
+	git := gitlabAuth(repoSha, baseURL)
+	var glRepoList []*gitlab.Project
+
+	log.Debugf("%s: Get groupID for '%s'", repoSha, groupName)
+	groupID, fullGroupName, err := getGroupID(repoSha, git, groupName)
+	if err != nil {
+		log.Errorf(
+			"%s: Error while trying to find group '%s': %s",
+			repoSha, groupName, err,
+		)
+		return glRepoList
+	}
+	log.Debugf("%s: GroupID for '%s' is '%d'", repoSha, fullGroupName, groupID)
+
+	glRepoList = getRepositories(
+		repoSha, git, groupID, fullGroupName, glRepoList, gitlabOwned, gitlabVisibility, gitlabMinAccessLevel,
+	)
+
+	return glRepoList
 }

@@ -1,5 +1,5 @@
 /*
-Copyright © 2020 Eriks Zelenka <isindir@users.sourceforge.net>
+Copyright © 2020-2021 Eriks Zelenka <isindir@users.sourceforge.net>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -27,7 +27,6 @@ import (
 	"bytes"
 	"crypto/sha1"
 	"fmt"
-	"golang.org/x/net/context"
 	"io"
 	"io/ioutil"
 	"os"
@@ -37,6 +36,8 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+
+	"golang.org/x/net/context"
 
 	"github.com/fatih/color"
 	log "github.com/sirupsen/logrus"
@@ -51,22 +52,46 @@ const gitCmd = "git"
 
 var stayOnRef bool
 var defaultMainBranch = "master"
-var mirrorProvider string
+var gitProvider string
 var mirrorVisibilityMode = "private"
 var bitbucketMirrorProject = ""
 var colorHighlight *color.Color
 var colorRef *color.Color
 
+type ConfigGenParamsStruct struct {
+	// Gitlab specific vars
+	GitlabOwned          bool
+	GitlabVisibility     string
+	GitlabMinAccessLevel string
+
+	// Girhub specific vars
+	GithubVisibility  string
+	GithubAffiliation string
+
+	// Bitbicket specific vars
+	/*
+		MAYBE: implement for bitbucket to allow subset of repositories
+		BitbucketDivision string
+	*/
+	BitbucketRole string
+}
+
+type bitbucketLinks struct {
+	HREF string `yaml:"href,omitempty"`
+	Name string `yaml:"name,omitempty"`
+}
+
 // Repo structure defines information about single git repository.
 type Repo struct {
-	URL       string   `yaml:"url"`
-	Path      string   `yaml:"path,omitempty"`
-	AltName   string   `yaml:"altname,omitempty"`
-	Ref       string   `yaml:"ref,omitempty"`
-	Symlinks  []string `yaml:"symlinks,omitempty"`
-	fullPath  string
-	sha       string
-	mirrorURL string
+	URL      string   `yaml:"url"`
+	Path     string   `yaml:"path,omitempty"`
+	AltName  string   `yaml:"altname,omitempty"`
+	Ref      string   `yaml:"ref,omitempty"`
+	Symlinks []string `yaml:"symlinks,omitempty"`
+	// helper fields, not supposed to be written or read in Gitfile:
+	fullPath  string `yaml:"full_path,omitempty"`
+	sha       string `yaml:"sha,omitempty"`
+	mirrorURL string `yaml:"mirror_url,omitempty"`
 }
 
 // RepoI interface defined for mocking purposes.
@@ -159,13 +184,17 @@ func (repo *Repo) SetRepoLocalName() {
 
 // SetSha generates and sets `sha` of the data structure to use in log messages.
 func (repo *Repo) SetSha() {
-	h := sha1.New()
-	io.WriteString(h, fmt.Sprintf("%s (%s) %s", repo.URL, repo.Ref, repo.fullPath))
-	repo.sha = fmt.Sprintf("%x", h.Sum(nil))[0:7]
+	repo.sha = generateSha(fmt.Sprintf("%s (%s) %s", repo.URL, repo.Ref, repo.fullPath))
 }
 
-// PrepareForGet performs checks for repository as well as constructs extra information and sets repository data structure
-// values.
+func generateSha(input string) string {
+	h := sha1.New()
+	io.WriteString(h, input)
+	return fmt.Sprintf("%x", h.Sum(nil))[0:7]
+}
+
+// PrepareForGet performs checks for repository as well as constructs
+// extra information and sets repository data structure values.
 func (repo *Repo) PrepareForGet() {
 	repo.EnsurePathExists("")
 	repo.SetDefaultRef()
@@ -370,7 +399,12 @@ func (repo Repo) GitStashPop() {
 func (repo Repo) IsRefBranch() bool {
 	res := true
 	fullRef := fmt.Sprintf("refs/heads/%s", repo.Ref)
-	_, err := repo.ExecGitCommand([]string{"show-ref", "--quiet", "--verify", fullRef}, nil, nil, repo.fullPath)
+	_, err := repo.ExecGitCommand(
+		[]string{"show-ref", "--quiet", "--verify", fullRef},
+		nil,
+		nil,
+		repo.fullPath,
+	)
 	if err != nil {
 		res = false
 	}
@@ -380,7 +414,12 @@ func (repo Repo) IsRefBranch() bool {
 func (repo Repo) IsRefTag() bool {
 	res := true
 	fullRef := fmt.Sprintf("refs/tags/%s", repo.Ref)
-	_, err := repo.ExecGitCommand([]string{"show-ref", "--quiet", "--verify", fullRef}, nil, nil, repo.fullPath)
+	_, err := repo.ExecGitCommand(
+		[]string{"show-ref", "--quiet", "--verify", fullRef},
+		nil,
+		nil,
+		repo.fullPath,
+	)
 	if err != nil {
 		res = false
 	}
@@ -396,7 +435,9 @@ func (repo Repo) GitPull() {
 			log.Errorf("%s: %v: %v", repo.sha, err, serr.String())
 		}
 	} else {
-		log.Debugf("%s: Skip pulling upstream changes for '%s' which is not a branch", repo.sha, colorRef.Sprintf(repo.Ref))
+		log.Debugf(
+			"%s: Skip pulling upstream changes for '%s' which is not a branch",
+			repo.sha, colorRef.Sprintf(repo.Ref))
 	}
 }
 
@@ -459,7 +500,9 @@ func (repo Repo) CreateSymlink(symlink string) {
 		if finfo.IsDir() {
 			os.Symlink(repo.fullPath, symlink)
 		} else {
-			log.Errorf("%s: path for symlink '%s' directory '%s' exists, but is not directory - check configuration", repo.sha, symlink, symnlinkDir)
+			log.Errorf(
+				"%s: path for symlink '%s' directory '%s' exists, but is not directory - check configuration",
+				repo.sha, symlink, symnlinkDir)
 		}
 	} else {
 		// Otherwise ensure directory and create symlink
@@ -479,7 +522,7 @@ func (repo Repo) ProcessSymlinks() {
 }
 
 func (repo *Repo) EnsureMirrorExists() {
-	switch mirrorProvider {
+	switch gitProvider {
 	case "gitlab":
 		repo.EnsureGitlabMirrorExists()
 	case "github":
@@ -487,14 +530,14 @@ func (repo *Repo) EnsureMirrorExists() {
 	case "bitbucket":
 		repo.EnsureBitbucketMirrorExists()
 	default:
-		log.Fatalf("%s: Error: unknown '%s' git mirror provider", repo.sha, mirrorProvider)
+		log.Fatalf("%s: Error: unknown '%s' git mirror provider", repo.sha, gitProvider)
 		os.Exit(1)
 	}
 }
 
 func (repo *Repo) EnsureGitlabMirrorExists() {
 	// ( a/b/c/d -> a , b , b/c/d, d )
-	baseURL, projectNameFullPath, projectNameShort := repo.DecomposeGitURL()
+	baseURL, projectNameFullPath, projectNameShort := DecomposeGitURL(repo.mirrorURL)
 	log.Debugf("%s: For Check: BaseURL: %s projectNameFullPath: %s", repo.sha, baseURL, projectNameFullPath)
 	log.Debugf("%s: For Create: BaseURL: %s projectNameShort: %s", repo.sha, baseURL, projectNameShort)
 	// In gitlab Project is both - repository and directory to aggregate repositories
@@ -509,40 +552,61 @@ func (repo *Repo) EnsureGitlabMirrorExists() {
 		// Otherwise ensure group with subgroups exists and create project in subgroup
 		if projectNamespace != nil {
 			if projectNamespace.Kind == "user" {
-				log.Debugf("%s: Creating new gitlab project '%s' on '%s' for user '%s'", repo.sha, projectNameShort, baseURL, projectNamespace.Path)
-				gitlab.CreateProject(repo.sha, baseURL, projectNameShort, 0, mirrorVisibilityMode, repo.URL)
+				log.Debugf(
+					"%s: Creating new gitlab project '%s' on '%s' for user '%s'",
+					repo.sha, projectNameShort, baseURL, projectNamespace.Path)
+				gitlab.CreateProject(
+					repo.sha,
+					baseURL,
+					projectNameShort,
+					0,
+					mirrorVisibilityMode,
+					repo.URL,
+				)
 			} else {
-				log.Debugf("%s: Creating new gitlab project '%s' on '%s' for namespace '%s'", repo.sha, projectNameShort, baseURL, projectNamespace.Path)
-				gitlab.CreateProject(repo.sha, baseURL, projectNameShort, projectNamespace.ID, mirrorVisibilityMode, repo.URL)
+				log.Debugf(""+
+					"%s: Creating new gitlab project '%s' on '%s' for namespace '%s'",
+					repo.sha, projectNameShort, baseURL, projectNamespace.Path)
+				gitlab.CreateProject(
+					repo.sha,
+					baseURL,
+					projectNameShort,
+					projectNamespace.ID,
+					mirrorVisibilityMode,
+					repo.URL,
+				)
 			}
 		} else {
-			// TODO: space for improvement - ensure group with subgroups is created, then create project
-			log.Fatalf("%s: Group '%s' does not exist, please ensure it is created using for mirrors", repo.sha, namespaceFullPath)
+			// MAYBE: space for improvement - ensure group with subgroups is created, then create project
+			log.Fatalf(
+				"%s: Group '%s' does not exist, please ensure it is created using for mirrors",
+				repo.sha, namespaceFullPath)
 			os.Exit(1)
 		}
 	}
 }
 
-func (repo *Repo) DecomposeGitURL() (string, string, string) {
+func DecomposeGitURL(gitURL string) (string, string, string) {
+	// input: git@abc.com:b/c/d.git or https://abc.com/b/c/d.git -> abc.com/b/c/d
 	// remove unwanted parts of the git repo url
 	re := regexp.MustCompile(`.git$|^https://|^git@`)
-	url := re.ReplaceAllString(repo.mirrorURL, "")
+	url := re.ReplaceAllString(gitURL, "")
 	re = regexp.MustCompile(`:`)
 	url = re.ReplaceAllString(url, "/")
 
-	// baseURL and longPath for checking repo existence ( a/b/c/d -> a , b/c/d )
+	// baseURL and longPath for checking repo existence ( abc.com/b/c/d -> abc.com , b/c/d )
 	urlParts := strings.SplitN(url, "/", 2)
 	baseURL, fullName := urlParts[0], urlParts[1]
 
-	// baseURL and projecName for creating missing repository ( a/b/c/d -> a/b/c , d)
+	// baseURL and projecName for creating missing repository ( abc.com/b/c/d -> abc.com/b/c , d)
 	_, shortName := filepath.Split(url)
 
-	// ( a/b/c/d -> a, b, b/c/d )
+	// ( abc.com/b/c/d -> abc.com, b/c/d, d )
 	return baseURL, fullName, shortName
 }
 
 func (repo *Repo) EnsureGithubMirrorExists() {
-	_, projectNameFullPath, _ := repo.DecomposeGitURL()
+	_, projectNameFullPath, _ := DecomposeGitURL(repo.mirrorURL)
 	repoNameParts := strings.SplitN(projectNameFullPath, "/", 2)
 	workspaceName, repositoryName := repoNameParts[0], repoNameParts[1]
 	ctx := context.Background()
@@ -555,7 +619,7 @@ func (repo *Repo) EnsureGithubMirrorExists() {
 }
 
 func (repo *Repo) EnsureBitbucketMirrorExists() {
-	_, fullName, _ := repo.DecomposeGitURL()
+	_, fullName, _ := DecomposeGitURL(repo.mirrorURL)
 	repoNameParts := strings.SplitN(fullName, "/", 2)
 	workspaceName, repositoryName := repoNameParts[0], repoNameParts[1]
 	if !bitbucket.RepositoryExists(repo.sha, workspaceName, repositoryName) {
@@ -701,6 +765,198 @@ func GetRepositories(cfgFile string, concurrencyLevel int, stickToRef bool, shal
 	}
 }
 
+func fetchGithubRepos(
+	repoSha string,
+	gitCloudProviderRootURL string,
+	targetClonePath string,
+	configGenParams ConfigGenParamsStruct,
+) []Repo {
+	var repoList []Repo
+	ctx := context.Background()
+	_, owner, _ := DecomposeGitURL(gitCloudProviderRootURL)
+	log.Infof("%s: Fetching repositories for '%s' target: '%s'", repoSha, gitProvider, gitCloudProviderRootURL)
+
+	ghRepoList := github.FetchOwnerRepos(
+		ctx,
+		repoSha,
+		owner,
+		configGenParams.GithubVisibility,
+		configGenParams.GithubAffiliation,
+	)
+	log.Debugf("%s: Number of fetched repositories: '%d'", repoSha, len(ghRepoList))
+
+	for repo := 0; repo < len(ghRepoList); repo++ {
+		gitGetRepoDefinition := Repo{
+			URL: *ghRepoList[repo].SSHURL,
+			Ref: *ghRepoList[repo].DefaultBranch,
+		}
+		if targetClonePath != "" {
+			gitGetRepoDefinition.Path = targetClonePath
+		}
+		repoList = append(repoList, gitGetRepoDefinition)
+	}
+
+	return repoList
+}
+
+func getBitbucketRepositoryGitURL(
+	repoSha string,
+	v map[string]interface{},
+	gitCloudProviderRootURL string,
+	fullName string,
+) string {
+	var bbLinks []bitbucketLinks
+	cloneLinks := v["clone"]
+	guessWorkRepoURL := fmt.Sprintf("%s/%s", gitCloudProviderRootURL, fullName)
+
+	linksData, err := yaml.Marshal(&cloneLinks)
+	if err != nil {
+		log.Errorf("%s: Error marshaling clone links: '%+v', error: '%s'", repoSha, cloneLinks, err)
+		log.Debugf("%s: Return guess work repo clone path: '%s'", repoSha, guessWorkRepoURL)
+		return guessWorkRepoURL
+	}
+
+	err = yaml.Unmarshal(linksData, &bbLinks)
+	if err != nil {
+		log.Errorf("%s: Error unmarshaling clone links: '%+v', error: '%s'", repoSha, cloneLinks, err)
+		log.Debugf("%s: Return guess work repo clone path: '%s'", repoSha, guessWorkRepoURL)
+
+		return guessWorkRepoURL
+	}
+
+	for j := 0; j < len(bbLinks); j++ {
+		log.Debugf("%+v", bbLinks[j])
+		if bbLinks[j].Name == "ssh" {
+			return bbLinks[j].HREF
+		}
+	}
+
+	log.Debugf("%s: Return guess work repo clone path: '%s'", repoSha, guessWorkRepoURL)
+	return guessWorkRepoURL
+}
+
+func fetchBitbucketRepos(
+	repoSha string,
+	gitCloudProviderRootURL string,
+	targetClonePath string,
+	configGenParams ConfigGenParamsStruct,
+) []Repo {
+	var repoList []Repo
+
+	_, owner, _ := DecomposeGitURL(gitCloudProviderRootURL)
+	log.Infof("%s: Fetching repositories for '%s' target: '%s'", repoSha, gitProvider, gitCloudProviderRootURL)
+	bbRepoList := bitbucket.FetchOwnerRepos(
+		repoSha, owner, configGenParams.BitbucketRole)
+	for repo := 0; repo < len(bbRepoList); repo++ {
+		gitGetRepoDefinition := Repo{
+			URL: getBitbucketRepositoryGitURL(
+				repoSha,
+				bbRepoList[repo].Links,
+				gitCloudProviderRootURL,
+				bbRepoList[repo].Full_name,
+			),
+			Ref: bbRepoList[repo].Mainbranch.Name,
+		}
+		if targetClonePath != "" {
+			gitGetRepoDefinition.Path = targetClonePath
+		}
+		repoList = append(repoList, gitGetRepoDefinition)
+	}
+
+	return repoList
+}
+
+func fetchGitlabRepos(
+	repoSha string,
+	gitCloudProviderRootURL string,
+	targetClonePath string,
+	configGenParams ConfigGenParamsStruct,
+) []Repo {
+	var repoList []Repo
+
+	baseURL, groupName, _ := DecomposeGitURL(gitCloudProviderRootURL)
+	log.Infof(
+		"%s: Fetching repositories for '%s' target: '%s' -> '%s' '%s'",
+		repoSha, gitProvider, gitCloudProviderRootURL, baseURL, groupName)
+
+	glRepoList := gitlab.FetchOwnerRepos(
+		repoSha,
+		baseURL,
+		groupName,
+		configGenParams.GitlabOwned,
+		configGenParams.GitlabVisibility,
+		configGenParams.GitlabMinAccessLevel,
+	)
+	for repo := 0; repo < len(glRepoList); repo++ {
+		log.Debugf("%s: '%s'", repoSha, glRepoList[repo].SSHURLToRepo)
+
+		gitGetRepoDefinition := Repo{
+			URL: glRepoList[repo].SSHURLToRepo,
+			Ref: glRepoList[repo].DefaultBranch,
+		}
+		// MAYBE: CLI flag for with Namespace
+		if targetClonePath != "" {
+			gitGetRepoDefinition.Path = fmt.Sprintf("%s/%s", targetClonePath, glRepoList[repo].PathWithNamespace)
+		} else {
+			gitGetRepoDefinition.Path = glRepoList[repo].PathWithNamespace
+		}
+		repoList = append(repoList, gitGetRepoDefinition)
+	}
+
+	return repoList
+}
+
+func writeReposToFile(repoSha string, cfgFile string, repoList []Repo) {
+	if len(repoList) > 0 {
+		log.Infof(
+			"%s: Final number of repositories to be written to '%s': '%d'",
+			repoSha, cfgFile, len(repoList))
+		repoData, err := yaml.Marshal(&repoList)
+		if err != nil {
+			log.Fatalf("%s: %s", cfgFile, err)
+		}
+
+		log.Infof("%s: Writing file '%s'", repoSha, cfgFile)
+		err = ioutil.WriteFile(cfgFile, repoData, 0644)
+		if err != nil {
+			log.Fatalf("%s: %s", cfgFile, err)
+		}
+	} else {
+		log.Infof(
+			"%s: Final number of repositories is '%d', skipping writing to '%s'",
+			repoSha, len(repoList), cfgFile)
+	}
+}
+
+// GenerateGitfileConfig - Entry point for Gitfile generation logic
+func GenerateGitfileConfig(
+	cfgFile string,
+	gitCloudProviderRootURL string,
+	gitCloudProvider string,
+	targetClonePath string,
+	configGenParams ConfigGenParamsStruct,
+) {
+	initColors()
+	gitProvider = gitCloudProvider
+	repoSha := generateSha(gitCloudProviderRootURL)
+	var repoList []Repo
+
+	switch gitProvider {
+	case "github":
+		repoList = fetchGithubRepos(repoSha, gitCloudProviderRootURL, targetClonePath, configGenParams)
+	case "gitlab":
+		repoList = fetchGitlabRepos(repoSha, gitCloudProviderRootURL, targetClonePath, configGenParams)
+	case "bitbucket":
+		repoList = fetchBitbucketRepos(repoSha, gitCloudProviderRootURL, targetClonePath, configGenParams)
+	default:
+		log.Fatalf("%s: Error: unknown '%s' git mirror provider", repoSha, gitProvider)
+		os.Exit(1)
+	}
+
+	writeReposToFile(repoSha, cfgFile, repoList)
+}
+
+// MirrorRepositories - Entry point for mirror creation/update logic
 func MirrorRepositories(
 	cfgFile string,
 	concurrencyLevel int,
@@ -711,7 +967,7 @@ func MirrorRepositories(
 	mirrorBitbucketProjectName string,
 ) {
 	initColors()
-	mirrorProvider = mirrorProviderName
+	gitProvider = mirrorProviderName
 	mirrorVisibilityMode = mirrorVisibilityModeName
 	bitbucketMirrorProject = mirrorBitbucketProjectName
 

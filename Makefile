@@ -2,7 +2,7 @@ SHELL = /usr/bin/env bash -o pipefail
 .SHELLFLAGS = -ec
 GO := GOPROXY=https://proxy.golang.org go
 
-VERSION:="0.0.6"
+VERSION:="0.0.7"
 EXE:="git-get"
 BUILD:=`git rev-parse --short HEAD`
 TIME:=`date`

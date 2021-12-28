@@ -28,11 +28,12 @@ import (
 	"path/filepath"
 
 	"github.com/isindir/git-get/gitget"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
 	log "github.com/sirupsen/logrus"
 )
+
+var configGenParams gitget.ConfigGenParamsStruct
 
 var cfgFile string
 var logLevel string
@@ -40,13 +41,17 @@ var stayOnRef bool
 var shallow bool
 var concurrencyLevel int
 var pushMirror bool
-var mirrorRootURL string
+var dryRun bool
+var gitCloudProviderRootURL string
+var targetClonePath string
 var defaultMainBranch string
-var mirrorProvider string
+var gitCloudProvider string
+
+// Mirroring specific vars
 var mirrorVisibilityMode string
 var mirrorBitbucketProjectName string
 
-var levels = map[string]logrus.Level{
+var levels = map[string]log.Level{
 	"panic": log.PanicLevel,
 	"fatal": log.FatalLevel,
 	"error": log.ErrorLevel,
@@ -61,7 +66,7 @@ var rootCmd = &cobra.Command{
 	Short: "'git-get' - all your project repositories",
 	Long: `'git-get' - all your project repositories
 
-git-get clones/refreshes all you project repositories in
+git-get clone/refreshe all your local project repositories in
 one go.
 
 Yaml formatted configuration file specifies directory

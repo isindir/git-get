@@ -24,24 +24,25 @@ package bitbucket
 
 import (
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	"os"
 	"regexp"
 	"strings"
 
+	log "github.com/sirupsen/logrus"
+
 	bitbucket "github.com/ktrysmt/go-bitbucket"
 )
 
-func bitbucketAuth(repositorySha string) *bitbucket.Client {
+func bitbucketAuth(repoSha string) *bitbucket.Client {
 	username, usernameFound := os.LookupEnv("BITBUCKET_USERNAME")
 	if !usernameFound {
-		log.Fatalf("%s: Error - environment variable BITBUCKET_TOKEN not found", repositorySha)
+		log.Fatalf("%s: Error - environment variable BITBUCKET_TOKEN not found", repoSha)
 		os.Exit(1)
 	}
 
 	token, tokenFound := os.LookupEnv("BITBUCKET_TOKEN")
 	if !tokenFound {
-		log.Fatalf("%s: Error - environment variable BITBUCKET_TOKEN not found", repositorySha)
+		log.Fatalf("%s: Error - environment variable BITBUCKET_TOKEN not found", repoSha)
 		os.Exit(1)
 	}
 
@@ -55,8 +56,8 @@ func GenerateProjectKey(projectName string) string {
 	return strings.ToUpper(re.ReplaceAllString(projectName, ""))
 }
 
-func RepositoryExists(repositorySha string, owner string, repository string) bool {
-	git := bitbucketAuth(repositorySha)
+func RepositoryExists(repoSha string, owner string, repository string) bool {
+	git := bitbucketAuth(repoSha)
 
 	repoOptions := &bitbucket.RepositoryOptions{
 		Owner:    owner,
@@ -65,10 +66,10 @@ func RepositoryExists(repositorySha string, owner string, repository string) boo
 	repo, err := git.Repositories.Repository.Get(repoOptions)
 
 	if err != nil {
-		log.Debugf("%s: Error fetching repository '%s/%s': %+v", repositorySha, owner, repository, err)
+		log.Debugf("%s: Error fetching repository '%s/%s': %+v", repoSha, owner, repository, err)
 		return false
 	} else {
-		log.Debugf("%s: Fetched repository '%+v'", repositorySha, repo)
+		log.Debugf("%s: Fetched repository '%+v'", repoSha, repo)
 		return true
 	}
 }
@@ -91,8 +92,8 @@ func ProjectExists(git *bitbucket.Client, repoSha string, workspace string, proj
 	}
 }
 
-func CreateRepository(repositorySha string, repository string, mirrorVisibilityMode string, sourceURL string, projectName string) *bitbucket.Repository {
-	git := bitbucketAuth(repositorySha)
+func CreateRepository(repoSha, repository, mirrorVisibilityMode, sourceURL, projectName string) *bitbucket.Repository {
+	git := bitbucketAuth(repoSha)
 
 	repoNameParts := strings.SplitN(repository, "/", 2)
 	owner, repoSlug := repoNameParts[0], repoNameParts[1]
@@ -109,22 +110,53 @@ func CreateRepository(repositorySha string, repository string, mirrorVisibilityM
 		Description: fmt.Sprintf("Mirror of the '%s'", sourceURL),
 		Scm:         "git",
 	}
-	// Assuming specific format of Key here - project name is converted to uppercase and only [a-zA-Z0-9_] are allowed in input name
+	// Assuming specific format of Key here - project name
+	// is converted to uppercase and only [a-zA-Z0-9_] are allowed in input name
 	if projectName != "" {
 		projectKey := GenerateProjectKey(projectName)
-		if ProjectExists(git, repositorySha, owner, projectKey) {
+		if ProjectExists(git, repoSha, owner, projectKey) {
 			repoOptions.Project = projectKey
 		}
 	}
-	log.Debugf("%s: Creating repository with parameters: '%+v'", repositorySha, repoOptions)
+	log.Debugf("%s: Creating repository with parameters: '%+v'", repoSha, repoOptions)
 
 	resultingRepository, err := git.Repositories.Repository.Create(repoOptions)
 
 	if err != nil {
-		log.Fatalf("%s: Error - while trying to create github repository '%s': '%s'", repositorySha, repository, err)
+		log.Fatalf("%s: Error - while trying to create github repository '%s': '%s'", repoSha, repository, err)
 		os.Exit(1)
 	}
 
-	log.Debugf("%s: Repository created: '%+v'", repositorySha, resultingRepository)
+	log.Debugf("%s: Repository created: '%+v'", repoSha, resultingRepository)
 	return resultingRepository
+}
+
+func FetchOwnerRepos(repoSha, owner, bitbucketRole string) []bitbucket.Repository {
+	log.Debugf("%s: Specified owner: '%s'", repoSha, owner)
+	var reposToReutrn []bitbucket.Repository
+
+	git := bitbucketAuth(repoSha)
+
+	opts := &bitbucket.RepositoriesOptions{
+		Owner: owner,
+		Role:  bitbucketRole,
+	}
+
+	repos, err := git.Workspaces.Repositories.ListForAccount(opts)
+
+	if repos != nil && len(repos.Items) > 0 && err == nil {
+		log.Debugf(
+			"%s: Page: %d, Pagelen: %d, MaxDepth: %d, Size: %d",
+			repoSha, repos.Page, repos.Pagelen, repos.MaxDepth, repos.Size)
+		reposToReutrn = repos.Items
+	} else {
+		log.Errorf("%s: Can't fetch repository list for '%s' '%+v'", repoSha, owner, err)
+
+	}
+
+	for i := 0; repos != nil && i < len(repos.Items) && err == nil; i++ {
+		log.Debugf("%s: Repository '%s(%s)'", repoSha, repos.Items[i].Full_name, repos.Items[i].Mainbranch.Name)
+	}
+
+	return reposToReutrn
 }

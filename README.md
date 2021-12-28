@@ -84,10 +84,16 @@ Flags:
 Use "git-get [command] --help" for more information about a command.
 ```
 
+## Generating Gitfile from git provider
+
+```bash
+% git-get config-gen --help
+```
+
 ## Creating mirror repositories in git provider
 
 ```bash
-git-get mirror --help
+% git-get mirror --help                                                                                                                                                                     <<<
 
 Creates or updates a mirror of repositories specified by configuration file in a specified git provider cloud.
 
@@ -118,10 +124,10 @@ Flags:
   -b, --bitbucket-mirror-project-name string   Bitbucket mirror project name (only effective for Bitbucket and is optional)
   -c, --concurrency-level int                  Git get concurrency level (default 1)
   -f, --config-file string                     Configuration file (default "~/Gitfile")
+  -d, --dry-run                                Dry-run - do not push to remote mirror repositories
   -h, --help                                   help for mirror
   -l, --log-level string                       Logging level [debug|info|warn|error|fatal|panic] (default "info")
-  -m, --mirror-provider string                 Git mirror provider name [gitlab|github|bitbucket] (default "gitlab")
+  -p, --mirror-provider string                 Git mirror provider name [gitlab|github|bitbucket] (default "gitlab")
   -u, --mirror-url string                      Private Mirror URL prefix to push repositories to (example: git@github.com:acmeorg)
   -v, --mirror-visibility-mode string          Mirror visibility mode [private|internal|public] (default "private")
-  -p, --push                                   Push to remote mirror repositories (default true)
 ```

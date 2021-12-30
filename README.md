@@ -169,3 +169,11 @@ Flags:
   -u, --mirror-url string                      Private Mirror URL prefix to push repositories to (example: git@github.com:acmeorg)
   -v, --mirror-visibility-mode string          Mirror visibility mode [private|internal|public] (default "private")
 ```
+
+# Related or similar projects
+
+* https://github.com/bradurani/Gitfile
+* https://github.com/coretech/terrafile
+* https://github.com/grdl/git-get
+* https://github.com/x-motemen/ghq
+* https://github.com/fboender/multi-git-status

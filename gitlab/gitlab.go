@@ -61,11 +61,12 @@ func ProjectExists(repositorySha string, baseUrl string, projectName string) boo
 
 	if err != nil {
 		return false
-	} else {
-		return true
 	}
+
+	return true
 }
 
+// GetProjectNamespace -
 func GetProjectNamespace(repositorySha string, baseUrl string, projectNameFullPath string) (*gitlab.Namespace, string) {
 	log.Debugf("%s: Getting Project FullPath Namespace '%s'", repositorySha, projectNameFullPath)
 	git := gitlabAuth(repositorySha, baseUrl)
@@ -85,9 +86,9 @@ func GetProjectNamespace(repositorySha string, baseUrl string, projectNameFullPa
 
 	if err != nil {
 		return nil, namespaceFullPath
-	} else {
-		return namespaceObject, namespaceFullPath
 	}
+
+	return namespaceObject, namespaceFullPath
 }
 
 // CreateProject - Create new code repository

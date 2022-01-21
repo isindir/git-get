@@ -23,6 +23,7 @@ THE SOFTWARE.
 package cmd
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -70,11 +71,17 @@ func init() {
 	}
 
 	defaultValue := filepath.Join(wdir, "Gitfile")
+	defaultIgnoreValue := fmt.Sprintf("%s.ignore", defaultValue)
 	configGenCmd.Flags().StringVarP(
 		&cfgFile, "config-file",
 		"f",
 		defaultValue,
 		"Configuration file")
+	configGenCmd.Flags().StringVarP(
+		&ignoreFile, "ignore-file",
+		"i",
+		defaultIgnoreValue,
+		"Ignore file")
 	configGenCmd.Flags().StringVarP(
 		&logLevel,
 		"log-level",

@@ -2,7 +2,7 @@ SHELL = /usr/bin/env bash -o pipefail
 .SHELLFLAGS = -ec
 GO := GOPROXY=https://proxy.golang.org go
 
-VERSION:="0.0.8"
+VERSION:="0.0.9"
 EXE:="git-get"
 BUILD:=`git rev-parse --short HEAD`
 TIME:=`date`
@@ -100,6 +100,11 @@ tidy: ## Fetches dependencies
 .PHONY: echo
 echo: ## Prints image name and version of the tool
 	@echo "git-get ${VERSION} ${BUILD}"
+
+.PHONY: update-here
+update-here: ## Helper target to start editing all occurances with UPDATE_HERE.
+	@echo "Update following files for release:"
+	@grep --color -nHR UPDATE_HERE .
 
 .PHONY: release
 release: ## Release application

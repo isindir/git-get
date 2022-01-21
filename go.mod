@@ -5,11 +5,11 @@ go 1.17
 
 require (
 	github.com/fatih/color v1.13.0
-	github.com/google/go-github/v41 v41.0.0
+	github.com/google/go-github/v42 v42.0.0
 	github.com/ktrysmt/go-bitbucket v0.9.34
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/cobra v1.3.0
-	github.com/xanzy/go-gitlab v0.52.2
+	github.com/xanzy/go-gitlab v0.54.3
 	golang.org/x/net v0.0.0-20210813160813-60bc85c4be6d
 	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8
 	gopkg.in/yaml.v2 v2.4.0

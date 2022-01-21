@@ -24,6 +24,7 @@ THE SOFTWARE.
 package cmd
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -79,12 +80,57 @@ func init() {
 	}
 
 	defaultValue := filepath.Join(wdir, "Gitfile")
-	mirrorCmd.Flags().StringVarP(&cfgFile, "config-file", "f", defaultValue, "Configuration file")
-	mirrorCmd.Flags().StringVarP(&logLevel, "log-level", "l", "info", "Logging level [debug|info|warn|error|fatal|panic]")
-	mirrorCmd.Flags().IntVarP(&concurrencyLevel, "concurrency-level", "c", 1, "Git get concurrency level")
-	mirrorCmd.Flags().BoolVarP(&dryRun, "dry-run", "d", false, "Dry-run - do not push to remote mirror repositories")
-	mirrorCmd.Flags().StringVarP(&gitCloudProviderRootURL, "mirror-url", "u", "", "Private Mirror URL prefix to push repositories to (example: git@github.com:acmeorg)")
-	mirrorCmd.Flags().StringVarP(&gitCloudProvider, "mirror-provider", "p", "gitlab", "Git mirror provider name [gitlab|github|bitbucket]")
-	mirrorCmd.Flags().StringVarP(&mirrorVisibilityMode, "mirror-visibility-mode", "v", "private", "Mirror visibility mode [private|internal|public]")
-	mirrorCmd.Flags().StringVarP(&mirrorBitbucketProjectName, "bitbucket-mirror-project-name", "b", "", "Bitbucket mirror project name (only effective for Bitbucket and is optional)")
+	defaultIgnoreValue := fmt.Sprintf("%s.ignore", defaultValue)
+	mirrorCmd.Flags().StringVarP(
+		&cfgFile, "config-file",
+		"f",
+		defaultValue,
+		"Configuration file")
+	mirrorCmd.Flags().StringVarP(
+		&ignoreFile, "ignore-file",
+		"i",
+		defaultIgnoreValue,
+		"Ignore file")
+	mirrorCmd.Flags().StringVarP(
+		&logLevel, "log-level",
+		"l",
+		"info",
+		"Logging level [debug|info|warn|error|fatal|panic]",
+	)
+	mirrorCmd.Flags().IntVarP(
+		&concurrencyLevel, "concurrency-level",
+		"c",
+		1,
+		"Git get concurrency level",
+	)
+	mirrorCmd.Flags().BoolVarP(
+		&dryRun, "dry-run",
+		"d",
+		false,
+		"Dry-run - do not push to remote mirror repositories",
+	)
+	mirrorCmd.Flags().StringVarP(
+		&gitCloudProviderRootURL, "mirror-url",
+		"u",
+		"",
+		"Private Mirror URL prefix to push repositories to (example: git@github.com:acmeorg)",
+	)
+	mirrorCmd.Flags().StringVarP(
+		&gitCloudProvider, "mirror-provider",
+		"p",
+		"gitlab",
+		"Git mirror provider name [gitlab|github|bitbucket]",
+	)
+	mirrorCmd.Flags().StringVarP(
+		&mirrorVisibilityMode, "mirror-visibility-mode",
+		"v",
+		"private",
+		"Mirror visibility mode [private|internal|public]",
+	)
+	mirrorCmd.Flags().StringVarP(
+		&mirrorBitbucketProjectName, "bitbucket-mirror-project-name",
+		"b",
+		"",
+		"Bitbucket mirror project name (only effective for Bitbucket and is optional)",
+	)
 }

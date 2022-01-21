@@ -1001,6 +1001,7 @@ func GenerateGitfileConfig(
 	var repoList []Repo
 
 	ignoreRepoList := GetIgnoreRepoList(ignoreFile)
+	gitProvider = gitCloudProvider
 
 	switch gitCloudProvider {
 	case "github":

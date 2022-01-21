@@ -695,7 +695,13 @@ func getReposFromConfigInParallel(repoList []Repo, ignoreRepoList []Repo, concur
 	wait.Wait()
 }
 
-func mirrorReposFromConfigInParallel(repoList []Repo, concurrencyLevel int, pushMirror bool, mirrorRootURL string) {
+func mirrorReposFromConfigInParallel(
+	repoList []Repo,
+	ignoreRepoList []Repo,
+	concurrencyLevel int,
+	pushMirror bool,
+	mirrorRootURL string,
+) {
 	var throttle = make(chan int, concurrencyLevel)
 
 	var wait sync.WaitGroup
@@ -715,15 +721,18 @@ func mirrorReposFromConfigInParallel(repoList []Repo, concurrencyLevel int, push
 		go func(repository Repo, iwait *sync.WaitGroup, ithrottle chan int) {
 			defer iwait.Done()
 
-			repository.PrepareForMirror(tempDir, mirrorRootURL)
-			// Clone
-			log.Debugf("%s: path '%s' cloning for mirror", repository.sha, repository.fullPath)
-			repository.CloneMirror()
-			if pushMirror {
-				repository.EnsureMirrorExists()
-				repository.PushMirror()
-			} else {
-				log.Infof("%s: skipping '%s' remote push per user request", repository.sha, repository.URL)
+			if !ignoreThisRepo(repository.URL, ignoreRepoList) {
+				log.Debugf("%s: process repo: '%s'", repository.sha, repository.URL)
+				repository.PrepareForMirror(tempDir, mirrorRootURL)
+				// Clone
+				log.Debugf("%s: path '%s' cloning for mirror", repository.sha, repository.fullPath)
+				repository.CloneMirror()
+				if pushMirror {
+					repository.EnsureMirrorExists()
+					repository.PushMirror()
+				} else {
+					log.Infof("%s: skipping '%s' remote push per user request", repository.sha, repository.URL)
+				}
 			}
 
 			<-ithrottle
@@ -1011,6 +1020,7 @@ func GenerateGitfileConfig(
 // MirrorRepositories - Entry point for mirror creation/update logic
 func MirrorRepositories(
 	cfgFile string,
+	ignoreFile string,
 	concurrencyLevel int,
 	pushMirror bool,
 	mirrorRootURL string,
@@ -1033,5 +1043,7 @@ func MirrorRepositories(
 		log.Fatalf("%s: %s", cfgFile, err)
 	}
 
-	mirrorReposFromConfigInParallel(repoList, concurrencyLevel, pushMirror, mirrorRootURL)
+	ignoreRepoList := GetIgnoreRepoList(ignoreFile)
+
+	mirrorReposFromConfigInParallel(repoList, ignoreRepoList, concurrencyLevel, pushMirror, mirrorRootURL)
 }

@@ -66,7 +66,16 @@ git-get mirror -c 2 -f Gitfile -l debug -u "git@bitbucket.com:acmeorg" -p "bitbu
 		initLogging(logLevel)
 		log.Debugf("%t - push to mirror", pushMirror)
 		pushMirror = !dryRun
-		gitget.MirrorRepositories(cfgFile, concurrencyLevel, pushMirror, gitCloudProviderRootURL, gitCloudProvider, mirrorVisibilityMode, mirrorBitbucketProjectName)
+		gitget.MirrorRepositories(
+			cfgFile,
+			ignoreFile,
+			concurrencyLevel,
+			pushMirror,
+			gitCloudProviderRootURL,
+			gitCloudProvider,
+			mirrorVisibilityMode,
+			mirrorBitbucketProjectName,
+		)
 	},
 }
 

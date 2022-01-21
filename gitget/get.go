@@ -58,6 +58,7 @@ var bitbucketMirrorProject = ""
 var colorHighlight *color.Color
 var colorRef *color.Color
 
+// ConfigGenParamsStruct - data structure to store parameters passed via cli flags
 type ConfigGenParamsStruct struct {
 	// Gitlab specific vars
 	GitlabOwned          bool
@@ -206,6 +207,7 @@ func (repo *Repo) PrepareForGet() {
 	log.Debugf("%s: Repository structure: '%+v'", repo.sha, repo)
 }
 
+// PrepareForMirror - set repository structure fields for mirror operation
 func (repo *Repo) PrepareForMirror(pathPrefix string, mirrorRootURL string) {
 	repo.SetTempRepoPathForMirror(pathPrefix)
 	repo.SetDefaultRef()
@@ -976,7 +978,7 @@ func GetIgnoreRepoList(ignoreFile string) []Repo {
 
 	yamlIgnoreFile, err := ioutil.ReadFile(ignoreFile)
 	if err != nil {
-		log.Warnf("Ignore file missing %s: %s", ignoreFile, err)
+		log.Warnf("Ignoring missing file: %s", err)
 		return ignoreRepoList
 	}
 
@@ -1001,6 +1003,7 @@ func GenerateGitfileConfig(
 	var repoList []Repo
 
 	ignoreRepoList := GetIgnoreRepoList(ignoreFile)
+	gitProvider = gitCloudProvider
 
 	switch gitCloudProvider {
 	case "github":

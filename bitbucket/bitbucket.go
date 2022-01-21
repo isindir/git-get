@@ -135,6 +135,7 @@ func CreateRepository(repoSha, repository, mirrorVisibilityMode, sourceURL, proj
 	return resultingRepository
 }
 
+// FetchOwnerRepos - fetch owner repositories via API
 func FetchOwnerRepos(repoSha, owner, bitbucketRole string) []bitbucket.Repository {
 	log.Debugf("%s: Specified owner: '%s'", repoSha, owner)
 	var reposToReutrn []bitbucket.Repository

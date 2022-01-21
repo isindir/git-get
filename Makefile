@@ -2,7 +2,7 @@ SHELL = /usr/bin/env bash -o pipefail
 .SHELLFLAGS = -ec
 GO := GOPROXY=https://proxy.golang.org go
 
-VERSION:="0.0.9"
+VERSION:="0.0.10"
 EXE:="git-get"
 BUILD:=`git rev-parse --short HEAD`
 TIME:=`date`
@@ -32,12 +32,32 @@ build: ## Builds the binary file
 		-ldflags="-X 'github.com/isindir/git-get/version.Version=v${VERSION}' \
 		-X 'github.com/isindir/git-get/version.Commit=${BUILD}' \
 		-X 'github.com/isindir/git-get/version.Time=${TIME}' " \
-	  -o ./bin/${EXE}-${VERSION}-osx main.go
+	  -o ./bin/${EXE}-${VERSION}-osx-amd64 main.go
+	@GO111MODULE=on GOOS=darwin GOARCH=arm64 $(GO) build \
+		-ldflags="-X 'github.com/isindir/git-get/version.Version=v${VERSION}' \
+		-X 'github.com/isindir/git-get/version.Commit=${BUILD}' \
+		-X 'github.com/isindir/git-get/version.Time=${TIME}' " \
+	  -o ./bin/${EXE}-${VERSION}-osx-arm64 main.go
 	@GO111MODULE=on GOOS=linux GOARCH=amd64 $(GO) build \
 		-ldflags="-X 'github.com/isindir/git-get/version.Version=v${VERSION}' \
 		-X 'github.com/isindir/git-get/version.Commit=${BUILD}' \
 		-X 'github.com/isindir/git-get/version.Time=${TIME}' " \
-	  -o ./bin/${EXE}-${VERSION}-linux main.go
+	  -o ./bin/${EXE}-${VERSION}-linux-amd64 main.go
+	@GO111MODULE=on GOOS=linux GOARCH=arm64 $(GO) build \
+		-ldflags="-X 'github.com/isindir/git-get/version.Version=v${VERSION}' \
+		-X 'github.com/isindir/git-get/version.Commit=${BUILD}' \
+		-X 'github.com/isindir/git-get/version.Time=${TIME}' " \
+	  -o ./bin/${EXE}-${VERSION}-linux-arm64 main.go
+	@GO111MODULE=on GOOS=windows GOARCH=amd64 $(GO) build \
+		-ldflags="-X 'github.com/isindir/git-get/version.Version=v${VERSION}' \
+		-X 'github.com/isindir/git-get/version.Commit=${BUILD}' \
+		-X 'github.com/isindir/git-get/version.Time=${TIME}' " \
+	  -o ./bin/${EXE}-${VERSION}-windows-amd64.exe main.go
+	@GO111MODULE=on GOOS=windows GOARCH=arm64 $(GO) build \
+		-ldflags="-X 'github.com/isindir/git-get/version.Version=v${VERSION}' \
+		-X 'github.com/isindir/git-get/version.Commit=${BUILD}' \
+		-X 'github.com/isindir/git-get/version.Time=${TIME}' " \
+	  -o ./bin/${EXE}-${VERSION}-windows-arm64.exe main.go
 	@$(GO) build -ldflags="-X 'github.com/isindir/git-get/version.Version=v${VERSION}' \
 		-X 'github.com/isindir/git-get/version.Commit=${BUILD}' \
 		-X 'github.com/isindir/git-get/version.Time=${TIME}' " \
@@ -118,7 +138,7 @@ release: ## Release application
 		if [[ ! $$res -eq 0 ]]; then \
 			git tag -a $$version -m "git-tag $$version" ; \
 			git-chglog "$$version" > chglog.tmp ; \
-			hub release create -F chglog.tmp "$$version" -a bin/$${exe}-$${version}-linux -a bin/$${exe}-$${version}-osx ; \
+			hub release create -F chglog.tmp "$$version" -a ./bin/${EXE}-${VERSION}-osx-amd64 -a ./bin/${EXE}-${VERSION}-linux-amd64 -a ./bin/${EXE}-${VERSION}-osx-arm64 -a ./bin/${EXE}-${VERSION}-linux-arm64 -a ./bin/${EXE}-${VERSION}-windows-amd64.exe -a ./bin/${EXE}-${VERSION}-windows-arm64.exe ; \
 			rm -f chglog.tmp ; \
 		fi ; \
 	}

@@ -178,6 +178,7 @@ func fetchUserRepos(
 	return repoList
 }
 
+// FetchOwnerRepos - fetch owner repositories via API, being it Organization or User
 func FetchOwnerRepos(
 	ctx context.Context,
 	repoSha, owner, githubVisibility, githubAffiliation string,

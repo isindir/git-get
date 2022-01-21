@@ -1,5 +1,5 @@
 /*
-Copyright © 2021 Eriks Zelenka <isindir@users.sourceforge.net>
+Copyright © 2021-2022 Eriks Zelenka <isindir@users.sourceforge.net>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -61,11 +61,12 @@ func ProjectExists(repositorySha string, baseUrl string, projectName string) boo
 
 	if err != nil {
 		return false
-	} else {
-		return true
 	}
+
+	return true
 }
 
+// GetProjectNamespace - return Project Namespace and namespace full path
 func GetProjectNamespace(repositorySha string, baseUrl string, projectNameFullPath string) (*gitlab.Namespace, string) {
 	log.Debugf("%s: Getting Project FullPath Namespace '%s'", repositorySha, projectNameFullPath)
 	git := gitlabAuth(repositorySha, baseUrl)
@@ -85,9 +86,9 @@ func GetProjectNamespace(repositorySha string, baseUrl string, projectNameFullPa
 
 	if err != nil {
 		return nil, namespaceFullPath
-	} else {
-		return namespaceObject, namespaceFullPath
 	}
+
+	return namespaceObject, namespaceFullPath
 }
 
 // CreateProject - Create new code repository

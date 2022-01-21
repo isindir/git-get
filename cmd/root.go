@@ -1,5 +1,5 @@
 /*
-Copyright © 2020-2021 Eriks Zelenka <isindir@users.sourceforge.net>
+Copyright © 2020-2022 Eriks Zelenka <isindir@users.sourceforge.net>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,6 +24,7 @@ THE SOFTWARE.
 package cmd
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -36,6 +37,7 @@ import (
 var configGenParams gitget.ConfigGenParamsStruct
 
 var cfgFile string
+var ignoreFile string
 var logLevel string
 var stayOnRef bool
 var shallow bool
@@ -81,7 +83,7 @@ git get -c 12 -f Gitfile`,
 			os.Exit(1)
 		}
 		initLogging(logLevel)
-		gitget.GetRepositories(cfgFile, concurrencyLevel, stayOnRef, shallow, defaultMainBranch)
+		gitget.GetRepositories(cfgFile, ignoreFile, concurrencyLevel, stayOnRef, shallow, defaultMainBranch)
 	},
 }
 
@@ -106,10 +108,40 @@ func init() {
 	}
 
 	defaultValue := filepath.Join(wdir, "Gitfile")
-	rootCmd.Flags().StringVarP(&cfgFile, "config-file", "f", defaultValue, "Configuration file")
-	rootCmd.Flags().StringVarP(&logLevel, "log-level", "l", "info", "Logging level [debug|info|warn|error|fatal|panic]")
-	rootCmd.Flags().IntVarP(&concurrencyLevel, "concurrency-level", "c", 1, "Git get concurrency level")
-	rootCmd.Flags().BoolVarP(&stayOnRef, "stay-on-ref", "t", false, "After refreshing repository from remote stay on ref branch")
-	rootCmd.Flags().BoolVarP(&shallow, "shallow", "s", false, "Shallow clone, can be used in CI to fetch dependencies by ref")
-	rootCmd.Flags().StringVarP(&defaultMainBranch, "default-main-branch", "b", "master", "Default main branch")
+	defaultIgnoreValue := fmt.Sprintf("%s.ignore", defaultValue)
+	rootCmd.Flags().StringVarP(
+		&cfgFile, "config-file",
+		"f",
+		defaultValue,
+		"Configuration file")
+	rootCmd.Flags().StringVarP(
+		&ignoreFile, "ignore-file",
+		"i",
+		defaultIgnoreValue,
+		"Ignore file")
+	rootCmd.Flags().StringVarP(
+		&logLevel, "log-level",
+		"l",
+		"info",
+		"Logging level [debug|info|warn|error|fatal|panic]")
+	rootCmd.Flags().IntVarP(
+		&concurrencyLevel, "concurrency-level",
+		"c",
+		1,
+		"Git get concurrency level")
+	rootCmd.Flags().BoolVarP(
+		&stayOnRef, "stay-on-ref",
+		"t",
+		false,
+		"After refreshing repository from remote stay on ref branch")
+	rootCmd.Flags().BoolVarP(
+		&shallow, "shallow",
+		"s",
+		false,
+		"Shallow clone, can be used in CI to fetch dependencies by ref")
+	rootCmd.Flags().StringVarP(
+		&defaultMainBranch, "default-main-branch",
+		"b",
+		"master",
+		"Default main branch")
 }

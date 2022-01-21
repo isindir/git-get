@@ -1,5 +1,5 @@
 /*
-Copyright © 2021 Eriks Zelenka <isindir@users.sourceforge.net>
+Copyright © 2021-2022 Eriks Zelenka <isindir@users.sourceforge.net>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -27,7 +27,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/google/go-github/v41/github"
+	"github.com/google/go-github/v42/github"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
@@ -49,6 +49,7 @@ func githubAuth(ctx context.Context, repositorySha string) *github.Client {
 	return git
 }
 
+// RepositoryExists - check if remote github repository exists
 func RepositoryExists(ctx context.Context, repositorySha string, owner string, repository string) bool {
 	git := githubAuth(ctx, repositorySha)
 	repo, _, err := git.Repositories.Get(ctx, owner, repository)
@@ -57,6 +58,7 @@ func RepositoryExists(ctx context.Context, repositorySha string, owner string, r
 	return err == nil
 }
 
+// CreateRepository - Create github repository
 func CreateRepository(
 	ctx context.Context,
 	repositorySha string,

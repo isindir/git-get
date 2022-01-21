@@ -1,5 +1,5 @@
 /*
-Copyright © 2021 Eriks Zelenka <isindir@users.sourceforge.net>
+Copyright © 2021-2022 Eriks Zelenka <isindir@users.sourceforge.net>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -23,6 +23,7 @@ THE SOFTWARE.
 package cmd
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -56,7 +57,7 @@ git-get config-gen -f Gitfile -p "github" -u "git@github.com:AcmeOrg" -t AcmeOrg
 		initLogging(logLevel)
 		log.Debug("Generate Gitfile configuration file")
 		gitget.GenerateGitfileConfig(
-			cfgFile, gitCloudProviderRootURL, gitCloudProvider, targetClonePath, configGenParams)
+			cfgFile, ignoreFile, gitCloudProviderRootURL, gitCloudProvider, targetClonePath, configGenParams)
 	},
 }
 
@@ -70,11 +71,17 @@ func init() {
 	}
 
 	defaultValue := filepath.Join(wdir, "Gitfile")
+	defaultIgnoreValue := fmt.Sprintf("%s.ignore", defaultValue)
 	configGenCmd.Flags().StringVarP(
 		&cfgFile, "config-file",
 		"f",
 		defaultValue,
 		"Configuration file")
+	configGenCmd.Flags().StringVarP(
+		&ignoreFile, "ignore-file",
+		"i",
+		defaultIgnoreValue,
+		"Ignore file")
 	configGenCmd.Flags().StringVarP(
 		&logLevel,
 		"log-level",

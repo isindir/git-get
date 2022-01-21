@@ -1,5 +1,5 @@
 /*
-Copyright © 2021 Eriks Zelenka <isindir@users.sourceforge.net>
+Copyright © 2021-2022 Eriks Zelenka <isindir@users.sourceforge.net>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -51,11 +51,13 @@ func bitbucketAuth(repoSha string) *bitbucket.Client {
 	return git
 }
 
+// GenerateProjectKey - convert project name to project key
 func GenerateProjectKey(projectName string) string {
 	re := regexp.MustCompile(`[^a-zA-Z0-9_]`)
 	return strings.ToUpper(re.ReplaceAllString(projectName, ""))
 }
 
+// RepositoryExists - checks if bitbucket repository exists
 func RepositoryExists(repoSha string, owner string, repository string) bool {
 	git := bitbucketAuth(repoSha)
 
@@ -68,12 +70,13 @@ func RepositoryExists(repoSha string, owner string, repository string) bool {
 	if err != nil {
 		log.Debugf("%s: Error fetching repository '%s/%s': %+v", repoSha, owner, repository, err)
 		return false
-	} else {
-		log.Debugf("%s: Fetched repository '%+v'", repoSha, repo)
-		return true
 	}
+
+	log.Debugf("%s: Fetched repository '%+v'", repoSha, repo)
+	return true
 }
 
+// ProjectExists - checks if bitbucket project exists
 func ProjectExists(git *bitbucket.Client, repoSha string, workspace string, project string) bool {
 	opt := &bitbucket.ProjectOptions{
 		Owner: workspace,
@@ -86,12 +89,13 @@ func ProjectExists(git *bitbucket.Client, repoSha string, workspace string, proj
 	if err != nil {
 		log.Debugf("%s: Error fetching project '%s' in workspace '%s': %+v\n", repoSha, project, workspace, err)
 		return false
-	} else {
-		log.Debugf("%s: Fetched project '%+v'\n", repoSha, prj)
-		return true
 	}
+
+	log.Debugf("%s: Fetched project '%+v'\n", repoSha, prj)
+	return true
 }
 
+// CreateRepository - create bitbucket repository
 func CreateRepository(repoSha, repository, mirrorVisibilityMode, sourceURL, projectName string) *bitbucket.Repository {
 	git := bitbucketAuth(repoSha)
 

@@ -64,5 +64,10 @@ var versionCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(versionCmd)
 
-	versionCmd.Flags().BoolP("long", "l", false, "print additional version information (default: false)")
+	versionCmd.Flags().BoolP(
+		"long",
+		"l",
+		false,
+		"print additional version information (default: false)",
+	)
 }

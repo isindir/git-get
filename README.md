@@ -14,8 +14,12 @@ $ brew install git-get
 
 ## Configuration file `Gitfile`
 
-`git-get` (which can be executed as `git get` if is in the `$PATH`) fetches git repositories using
+`git-get` (which can be executed as `git get`) fetches git repositories using
 configuration file (by default `Gitfile` in current directory of invocation).
+`Gitfile.ignore` file can control which repositories to skip from the operations
+and it has same format, where in `Gitfile.ignore` the only significant field is
+`url`, which value is compared with the target one. If `Gitfile.ignore` is missing
+this functionality is ignored.
 
 `Gitfile` format is:
 
@@ -41,6 +45,15 @@ configuration file (by default `Gitfile` in current directory of invocation).
   specifying `altname: my-git-get` will clone repository into directory `my-git-get`
 * `symlinks` is an optional list of paths to create symlinks to this clones repository. If such a file
   already exists (symlink, directory or regular file) - nothing will be done
+
+## Other `git-get` operations
+
+`git-get` can also generate configuration file from repositories in git provider or mirror
+repositories specified by `Gitfile` to a chosen git provider. For the clone/fetch operations
+on git repositories ssh keys must be used. For creating target repositories in git provider
+(during mirror operation) or for fetching the list of available repositories in git provider -
+user API keys are used. `git-get` allows shallow clone of the repositories, which is suitable
+for use in CI/CD.
 
 # Command line options
 
@@ -79,6 +92,7 @@ Flags:
   -f, --config-file string           Configuration file (default "~/Gitfile")
   -b, --default-main-branch string   Default main branch (default "master")
   -h, --help                         help for git-get
+  -i, --ignore-file string           Ignore file (default "~/Gitfile.ignore")
   -l, --log-level string             Logging level [debug|info|warn|error|fatal|panic] (default "info")
   -s, --shallow                      Shallow clone, can be used in CI to fetch dependencies by ref
   -t, --stay-on-ref                  After refreshing repository from remote stay on ref branch
@@ -124,6 +138,7 @@ Flags:
       --gitlab-owned                                Gitlab: only traverse groups and repositories owned by user
       --gitlab-project-visibility string            Gitlab: project visibility [public|internal|private]
   -h, --help                                        help for config-gen
+  -i, --ignore-file string                          Ignore file (default "~/Gitfile.ignore")
   -l, --log-level string                            Logging level [debug|info|warn|error|fatal|panic] (default "info")
   -t, --target-clone-path string                    Target clone path used to set 'path' for each repository in Gitfile
 ```
@@ -164,6 +179,7 @@ Flags:
   -f, --config-file string                     Configuration file (default "~/Gitfile")
   -d, --dry-run                                Dry-run - do not push to remote mirror repositories
   -h, --help                                   help for mirror
+  -i, --ignore-file string                     Ignore file (default "~/Gitfile.ignore")
   -l, --log-level string                       Logging level [debug|info|warn|error|fatal|panic] (default "info")
   -p, --mirror-provider string                 Git mirror provider name [gitlab|github|bitbucket] (default "gitlab")
   -u, --mirror-url string                      Private Mirror URL prefix to push repositories to (example: git@github.com:acmeorg)

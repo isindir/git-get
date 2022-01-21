@@ -8,10 +8,10 @@ jobs:
     if: github.ref != 'refs/heads/master'
     steps:
 
-    - name: Set up Go 1.17.5
+    - name: Set up Go 17.17.6
       uses: actions/setup-go@v1
       with:
-        go-version: 1.17.5
+        go-version: 17.17.6
       id: go
 
     - name: Check out code into the Go module directory
@@ -27,10 +27,10 @@ jobs:
     if: github.ref == 'refs/heads/master'
     steps:
 
-    - name: Set up Go 1.17.5
+    - name: Set up Go 17.17.6
       uses: actions/setup-go@v1
       with:
-        go-version: 1.17.5
+        go-version: 17.17.6
       id: go
 
     - name: Check out code into the Go module directory

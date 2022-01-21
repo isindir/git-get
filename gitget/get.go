@@ -630,7 +630,7 @@ func (repo *Repo) EnsureBitbucketMirrorExists() {
 	}
 }
 
-func getShallowReposFromConfigInParallel(repoList []Repo, concurrencyLevel int) {
+func getShallowReposFromConfigInParallel(repoList []Repo, ignoreRepoList []Repo, concurrencyLevel int) {
 	var throttle = make(chan int, concurrencyLevel)
 
 	var wait sync.WaitGroup
@@ -641,15 +641,18 @@ func getShallowReposFromConfigInParallel(repoList []Repo, concurrencyLevel int) 
 		go func(repository Repo, iwait *sync.WaitGroup, ithrottle chan int) {
 			defer iwait.Done()
 
-			repository.PrepareForGet()
-			if repository.RepoPathExists() {
-				log.Debugf("%s: path '%s' exists - removing target path", repository.sha, repository.fullPath)
-				repository.RemoveTargetDir(false)
+			if !ignoreThisRepo(repository.URL, ignoreRepoList) {
+				log.Debugf("%s: process repo: '%s'", repository.sha, repository.URL)
+				repository.PrepareForGet()
+				if repository.RepoPathExists() {
+					log.Debugf("%s: path '%s' exists - removing target path", repository.sha, repository.fullPath)
+					repository.RemoveTargetDir(false)
+				}
+				log.Debugf("%s: path '%s' missing - performing shallow clone", repository.sha, repository.fullPath)
+				repository.ShallowClone()
+				repository.RemoveTargetDir(true)
+				repository.ProcessSymlinks()
 			}
-			log.Debugf("%s: path '%s' missing - performing shallow clone", repository.sha, repository.fullPath)
-			repository.ShallowClone()
-			repository.RemoveTargetDir(true)
-			repository.ProcessSymlinks()
 
 			<-ithrottle
 		}(repo, &wait, throttle)
@@ -658,7 +661,7 @@ func getShallowReposFromConfigInParallel(repoList []Repo, concurrencyLevel int) 
 	wait.Wait()
 }
 
-func getReposFromConfigInParallel(repoList []Repo, concurrencyLevel int) {
+func getReposFromConfigInParallel(repoList []Repo, ignoreRepoList []Repo, concurrencyLevel int) {
 	var throttle = make(chan int, concurrencyLevel)
 
 	var wait sync.WaitGroup
@@ -670,17 +673,20 @@ func getReposFromConfigInParallel(repoList []Repo, concurrencyLevel int) {
 		go func(repository Repo, iwait *sync.WaitGroup, ithrottle chan int) {
 			defer iwait.Done()
 
-			repository.PrepareForGet()
-			if !repository.RepoPathExists() {
-				// Clone
-				log.Debugf("%s: path '%s' missing - cloning", repository.sha, repository.fullPath)
-				repository.Clone()
-			} else {
-				// Refresh
-				log.Debugf("%s: path '%s' exists, will refresh from remote", repository.sha, repository.fullPath)
-				repository.ProcessRepoBasedOnCurrentBranch()
+			if !ignoreThisRepo(repository.URL, ignoreRepoList) {
+				log.Debugf("%s: process repo: '%s'", repository.sha, repository.URL)
+				repository.PrepareForGet()
+				if !repository.RepoPathExists() {
+					// Clone
+					log.Debugf("%s: path '%s' missing - cloning", repository.sha, repository.fullPath)
+					repository.Clone()
+				} else {
+					// Refresh
+					log.Debugf("%s: path '%s' exists, will refresh from remote", repository.sha, repository.fullPath)
+					repository.ProcessRepoBasedOnCurrentBranch()
+				}
+				repository.ProcessSymlinks()
 			}
-			repository.ProcessSymlinks()
 
 			<-ithrottle
 		}(repo, &wait, throttle)
@@ -743,7 +749,7 @@ func processConfig(repoList []Repo) {
 	}
 }
 
-func GetRepositories(cfgFile string, concurrencyLevel int, stickToRef bool, shallow bool, defaultTrunkBranch string) {
+func GetRepositories(cfgFile string, ignoreFile string, concurrencyLevel int, stickToRef bool, shallow bool, defaultTrunkBranch string) {
 	initColors()
 	stayOnRef = stickToRef
 	defaultMainBranch = defaultTrunkBranch
@@ -758,15 +764,28 @@ func GetRepositories(cfgFile string, concurrencyLevel int, stickToRef bool, shal
 		log.Fatalf("%s: %s", cfgFile, err)
 	}
 
+	ignoreRepoList := GetIgnoreRepoList(ignoreFile)
+
 	if shallow {
-		getShallowReposFromConfigInParallel(repoList, concurrencyLevel)
+		getShallowReposFromConfigInParallel(repoList, ignoreRepoList, concurrencyLevel)
 	} else {
-		getReposFromConfigInParallel(repoList, concurrencyLevel)
+		getReposFromConfigInParallel(repoList, ignoreRepoList, concurrencyLevel)
 	}
+}
+
+func ignoreThisRepo(repoURL string, ignoreRepoList []Repo) bool {
+	for ignoreRepo := 0; ignoreRepo < len(ignoreRepoList); ignoreRepo++ {
+		if ignoreRepoList[ignoreRepo].URL == repoURL {
+			return true
+		}
+	}
+
+	return false
 }
 
 func fetchGithubRepos(
 	repoSha string,
+	ignoreRepoList []Repo,
 	gitCloudProviderRootURL string,
 	targetClonePath string,
 	configGenParams ConfigGenParamsStruct,
@@ -793,7 +812,11 @@ func fetchGithubRepos(
 		if targetClonePath != "" {
 			gitGetRepoDefinition.Path = targetClonePath
 		}
-		repoList = append(repoList, gitGetRepoDefinition)
+
+		if !ignoreThisRepo(gitGetRepoDefinition.URL, ignoreRepoList) {
+			log.Debugf("%s: adding repo: '%s'", repoSha, gitGetRepoDefinition.URL)
+			repoList = append(repoList, gitGetRepoDefinition)
+		}
 	}
 
 	return repoList
@@ -837,6 +860,7 @@ func getBitbucketRepositoryGitURL(
 
 func fetchBitbucketRepos(
 	repoSha string,
+	ignoreRepoList []Repo,
 	gitCloudProviderRootURL string,
 	targetClonePath string,
 	configGenParams ConfigGenParamsStruct,
@@ -860,7 +884,11 @@ func fetchBitbucketRepos(
 		if targetClonePath != "" {
 			gitGetRepoDefinition.Path = targetClonePath
 		}
-		repoList = append(repoList, gitGetRepoDefinition)
+
+		if !ignoreThisRepo(gitGetRepoDefinition.URL, ignoreRepoList) {
+			log.Debugf("%s: adding repo: '%s'", repoSha, gitGetRepoDefinition.URL)
+			repoList = append(repoList, gitGetRepoDefinition)
+		}
 	}
 
 	return repoList
@@ -868,6 +896,7 @@ func fetchBitbucketRepos(
 
 func fetchGitlabRepos(
 	repoSha string,
+	ignoreRepoList []Repo,
 	gitCloudProviderRootURL string,
 	targetClonePath string,
 	configGenParams ConfigGenParamsStruct,
@@ -900,7 +929,11 @@ func fetchGitlabRepos(
 		} else {
 			gitGetRepoDefinition.Path = glRepoList[repo].PathWithNamespace
 		}
-		repoList = append(repoList, gitGetRepoDefinition)
+
+		if !ignoreThisRepo(gitGetRepoDefinition.URL, ignoreRepoList) {
+			log.Debugf("%s: adding repo: '%s'", repoSha, gitGetRepoDefinition.URL)
+			repoList = append(repoList, gitGetRepoDefinition)
+		}
 	}
 
 	return repoList
@@ -928,28 +961,47 @@ func writeReposToFile(repoSha string, cfgFile string, repoList []Repo) {
 	}
 }
 
+// GetIgnoreRepoList - tries to read ignore file if it is existing and returns list of repositories
+func GetIgnoreRepoList(ignoreFile string) []Repo {
+	var ignoreRepoList []Repo
+
+	yamlIgnoreFile, err := ioutil.ReadFile(ignoreFile)
+	if err != nil {
+		log.Warnf("Ignore file missing %s: %s", ignoreFile, err)
+		return ignoreRepoList
+	}
+
+	if err := yaml.Unmarshal(yamlIgnoreFile, &ignoreRepoList); err != nil {
+		log.Fatalf("%s: %s", ignoreFile, err)
+	}
+
+	return ignoreRepoList
+}
+
 // GenerateGitfileConfig - Entry point for Gitfile generation logic
 func GenerateGitfileConfig(
 	cfgFile string,
+	ignoreFile string,
 	gitCloudProviderRootURL string,
 	gitCloudProvider string,
 	targetClonePath string,
 	configGenParams ConfigGenParamsStruct,
 ) {
 	initColors()
-	gitProvider = gitCloudProvider
 	repoSha := generateSha(gitCloudProviderRootURL)
 	var repoList []Repo
 
-	switch gitProvider {
+	ignoreRepoList := GetIgnoreRepoList(ignoreFile)
+
+	switch gitCloudProvider {
 	case "github":
-		repoList = fetchGithubRepos(repoSha, gitCloudProviderRootURL, targetClonePath, configGenParams)
+		repoList = fetchGithubRepos(repoSha, ignoreRepoList, gitCloudProviderRootURL, targetClonePath, configGenParams)
 	case "gitlab":
-		repoList = fetchGitlabRepos(repoSha, gitCloudProviderRootURL, targetClonePath, configGenParams)
+		repoList = fetchGitlabRepos(repoSha, ignoreRepoList, gitCloudProviderRootURL, targetClonePath, configGenParams)
 	case "bitbucket":
-		repoList = fetchBitbucketRepos(repoSha, gitCloudProviderRootURL, targetClonePath, configGenParams)
+		repoList = fetchBitbucketRepos(repoSha, ignoreRepoList, gitCloudProviderRootURL, targetClonePath, configGenParams)
 	default:
-		log.Fatalf("%s: Error: unknown '%s' git mirror provider", repoSha, gitProvider)
+		log.Fatalf("%s: Error: unknown '%s' git mirror provider", repoSha, gitCloudProvider)
 		os.Exit(1)
 	}
 

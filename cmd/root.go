@@ -83,7 +83,7 @@ git get -c 12 -f Gitfile`,
 			os.Exit(1)
 		}
 		initLogging(logLevel)
-		gitget.GetRepositories(cfgFile, concurrencyLevel, stayOnRef, shallow, defaultMainBranch)
+		gitget.GetRepositories(cfgFile, ignoreFile, concurrencyLevel, stayOnRef, shallow, defaultMainBranch)
 	},
 }
 

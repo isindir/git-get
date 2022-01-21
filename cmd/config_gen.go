@@ -57,7 +57,7 @@ git-get config-gen -f Gitfile -p "github" -u "git@github.com:AcmeOrg" -t AcmeOrg
 		initLogging(logLevel)
 		log.Debug("Generate Gitfile configuration file")
 		gitget.GenerateGitfileConfig(
-			cfgFile, gitCloudProviderRootURL, gitCloudProvider, targetClonePath, configGenParams)
+			cfgFile, ignoreFile, gitCloudProviderRootURL, gitCloudProvider, targetClonePath, configGenParams)
 	},
 }
 

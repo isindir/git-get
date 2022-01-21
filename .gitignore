@@ -1,6 +1,7 @@
 # Custom
 env
 Gitfile
+Gitfile.ignore
 bin/
 chglog.tmp
 gitlab_api_postman.json

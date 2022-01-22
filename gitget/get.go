@@ -84,15 +84,26 @@ type bitbucketLinks struct {
 
 // Repo structure defines information about single git repository.
 type Repo struct {
-	URL      string   `yaml:"url"`
-	Path     string   `yaml:"path,omitempty"`
-	AltName  string   `yaml:"altname,omitempty"`
-	Ref      string   `yaml:"ref,omitempty"`
-	Symlinks []string `yaml:"symlinks,omitempty"`
+	URL      string   `yaml:"url"`                // git url of the remote repository
+	Path     string   `yaml:"path,omitempty"`     // to clone repository to
+	AltName  string   `yaml:"altname,omitempty"`  // when clone, repository will have different name from remote
+	Ref      string   `yaml:"ref,omitempty"`      // branch to clone (normally trunk branch name, but git sha or git tag can be also specified)
+	Symlinks []string `yaml:"symlinks,omitempty"` // paths where to create symlinks to the repository clone
 	// helper fields, not supposed to be written or read in Gitfile:
-	fullPath  string `yaml:"full_path,omitempty"`
-	sha       string `yaml:"sha,omitempty"`
-	mirrorURL string `yaml:"mirror_url,omitempty"`
+	fullPath  string     `yaml:"full_path,omitempty"`
+	sha       string     `yaml:"sha,omitempty"`
+	mirrorURL string     `yaml:"mirror_url,omitempty"`
+	status    RepoStatus // keep track of the repository status after operation to provide summary
+}
+
+// RepoStatus - data structure to track repository status
+type RepoStatus struct {
+	Processed             bool // by default repository is not processed, and won't be if skipped
+	OnFeatureBranch       bool // repository checked out branch is not trunk but feature branch
+	RefIsBranch           bool
+	UncommittedChanges    bool   // there are no uncommitted or staged changes in the branch
+	OperationErrorMessage string // last operation error message if any
+	//RefBranchUpToDate     bool   // MAYBE: cloned Ref branch is up-to-date with remote
 }
 
 // RepoI interface defined for mocking purposes.
@@ -295,7 +306,9 @@ func (repo Repo) Clone() bool {
 		"",
 	)
 	if err != nil {
-		log.Errorf("%s: %v %v", repo.sha, err, serr.String())
+		errorMessage := fmt.Sprintf("%s: %v %v", repo.sha, err, serr.String())
+		log.Error(errorMessage)
+		repo.status.OperationErrorMessage = errorMessage
 		return false
 	}
 	return true
@@ -312,7 +325,9 @@ func (repo Repo) ShallowClone() bool {
 		"",
 	)
 	if err != nil {
-		log.Errorf("%s: %v %v", repo.sha, err, serr.String())
+		errorMessage := fmt.Sprintf("%s: %v %v", repo.sha, err, serr.String())
+		log.Error(errorMessage)
+		repo.status.OperationErrorMessage = errorMessage
 		return false
 	}
 	return true
@@ -385,7 +400,9 @@ func (repo Repo) GitStashSave() {
 	var serr bytes.Buffer
 	_, err := repo.ExecGitCommand([]string{"stash", "save"}, nil, &serr, repo.fullPath)
 	if err != nil {
-		log.Warnf("%s: %v: %v", repo.sha, err, serr.String())
+		errorMessage := fmt.Sprintf("%s: %v: %v", repo.sha, err, serr.String())
+		repo.status.OperationErrorMessage = errorMessage
+		log.Warn(errorMessage)
 	}
 }
 
@@ -394,7 +411,9 @@ func (repo Repo) GitStashPop() {
 	var serr bytes.Buffer
 	_, err := repo.ExecGitCommand([]string{"stash", "pop"}, nil, &serr, repo.fullPath)
 	if err != nil {
-		log.Warnf("%s: %v: %v", repo.sha, err, serr.String())
+		errorMessage := fmt.Sprintf("%s: %v: %v", repo.sha, err, serr.String())
+		repo.status.OperationErrorMessage = errorMessage
+		log.Warn(errorMessage)
 	}
 }
 
@@ -434,12 +453,16 @@ func (repo Repo) GitPull() {
 		var serr bytes.Buffer
 		_, err := repo.ExecGitCommand([]string{"pull", "-f"}, nil, &serr, repo.fullPath)
 		if err != nil {
-			log.Errorf("%s: %v: %v", repo.sha, err, serr.String())
+			errorMessage := fmt.Sprintf("%s: %v: %v", repo.sha, err, serr.String())
+			repo.status.OperationErrorMessage = errorMessage
+			log.Error(errorMessage)
 		}
+		repo.status.RefIsBranch = true
 	} else {
 		log.Debugf(
 			"%s: Skip pulling upstream changes for '%s' which is not a branch",
 			repo.sha, colorRef.Sprintf(repo.Ref))
+		repo.status.RefIsBranch = false
 	}
 }
 
@@ -449,6 +472,8 @@ func (repo *Repo) ProcessRepoBasedOnCleaness() {
 		repo.GitPull()
 	} else {
 		log.Debugf("%s: Repo is NOT clean", repo.sha)
+		repo.status.UncommittedChanges = true
+
 		repo.GitStashSave()
 
 		repo.GitPull()
@@ -462,7 +487,12 @@ func (repo Repo) GitCheckout(branch string) {
 	var serr bytes.Buffer
 	_, err := repo.ExecGitCommand([]string{"checkout", branch}, nil, &serr, repo.fullPath)
 	if err != nil {
-		log.Warnf("%s: %v: %v", repo.sha, err, serr.String())
+		errorMessage := fmt.Sprintf("%s: %v: %v", repo.sha, err, serr.String())
+		repo.status.OperationErrorMessage = errorMessage
+		log.Warn(errorMessage)
+	}
+	if repo.Ref != branch {
+		repo.status.OnFeatureBranch = true
 	}
 }
 
@@ -478,6 +508,7 @@ func (repo *Repo) ProcessRepoBasedOnCurrentBranch() {
 		repo.ProcessRepoBasedOnCleaness()
 
 		if !stayOnRef {
+			// TODO: check how to set status for this
 			repo.GitCheckout(currentBranch)
 		} else {
 			log.Debugf("%s: Stay on ref branch '%s'", repo.sha, colorRef.Sprintf(repo.Ref))
@@ -502,9 +533,11 @@ func (repo Repo) CreateSymlink(symlink string) {
 		if finfo.IsDir() {
 			os.Symlink(repo.fullPath, symlink)
 		} else {
-			log.Errorf(
+			errorMessage := fmt.Sprintf(
 				"%s: path for symlink '%s' directory '%s' exists, but is not directory - check configuration",
 				repo.sha, symlink, symnlinkDir)
+			log.Error(errorMessage)
+			repo.status.OperationErrorMessage = errorMessage
 		}
 	} else {
 		// Otherwise ensure directory and create symlink
@@ -652,8 +685,11 @@ func getShallowReposFromConfigInParallel(repoList []Repo, ignoreRepoList []Repo,
 				}
 				log.Debugf("%s: path '%s' missing - performing shallow clone", repository.sha, repository.fullPath)
 				repository.ShallowClone()
+				// remove .git inside the cloned path
 				repository.RemoveTargetDir(true)
 				repository.ProcessSymlinks()
+
+				repository.status.Processed = true
 			}
 
 			<-ithrottle
@@ -688,6 +724,7 @@ func getReposFromConfigInParallel(repoList []Repo, ignoreRepoList []Repo, concur
 					repository.ProcessRepoBasedOnCurrentBranch()
 				}
 				repository.ProcessSymlinks()
+				repository.status.Processed = true
 			}
 
 			<-ithrottle
@@ -760,7 +797,15 @@ func processConfig(repoList []Repo) {
 	}
 }
 
-func GetRepositories(cfgFile string, ignoreFile string, concurrencyLevel int, stickToRef bool, shallow bool, defaultTrunkBranch string) {
+func GetRepositories(
+	cfgFile string,
+	ignoreFile string,
+	concurrencyLevel int,
+	stickToRef bool,
+	shallow bool,
+	defaultTrunkBranch string,
+	status bool,
+) {
 	initColors()
 	stayOnRef = stickToRef
 	defaultMainBranch = defaultTrunkBranch
@@ -781,6 +826,25 @@ func GetRepositories(cfgFile string, ignoreFile string, concurrencyLevel int, st
 		getShallowReposFromConfigInParallel(repoList, ignoreRepoList, concurrencyLevel)
 	} else {
 		getReposFromConfigInParallel(repoList, ignoreRepoList, concurrencyLevel)
+	}
+
+	if status {
+		log.Info("======================")
+		log.Info("= Status Information =")
+		log.Info("======================")
+		for _, repo := range repoList {
+			if repo.status.Processed {
+				log.Infof(
+					"%s: uncommitted: %t, on trunk branch: %t, failed: '%s'",
+					repo.URL,
+					repo.status.UncommittedChanges,
+					//repo.status.RefIsBranch,
+					!repo.status.OnFeatureBranch,
+					repo.status.OperationErrorMessage,
+				)
+			}
+		}
+		log.Info("======================")
 	}
 }
 

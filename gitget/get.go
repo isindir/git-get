@@ -670,10 +670,10 @@ func getShallowReposFromConfigInParallel(repoList []Repo, ignoreRepoList []Repo,
 
 	var wait sync.WaitGroup
 
-	for _, repo := range repoList {
+	for i := 0; i < len(repoList); i++ {
 		throttle <- 1
 		wait.Add(1)
-		go func(repository Repo, iwait *sync.WaitGroup, ithrottle chan int) {
+		go func(repository *Repo, iwait *sync.WaitGroup, ithrottle chan int) {
 			defer iwait.Done()
 
 			if !ignoreThisRepo(repository.URL, ignoreRepoList) {
@@ -693,7 +693,7 @@ func getShallowReposFromConfigInParallel(repoList []Repo, ignoreRepoList []Repo,
 			}
 
 			<-ithrottle
-		}(repo, &wait, throttle)
+		}(&repoList[i], &wait, throttle)
 	}
 
 	wait.Wait()
@@ -704,11 +704,11 @@ func getReposFromConfigInParallel(repoList []Repo, ignoreRepoList []Repo, concur
 
 	var wait sync.WaitGroup
 
-	for _, repo := range repoList {
+	for i := 0; i < len(repoList); i++ {
 		throttle <- 1
 		wait.Add(1)
 
-		go func(repository Repo, iwait *sync.WaitGroup, ithrottle chan int) {
+		go func(repository *Repo, iwait *sync.WaitGroup, ithrottle chan int) {
 			defer iwait.Done()
 
 			if !ignoreThisRepo(repository.URL, ignoreRepoList) {
@@ -728,7 +728,7 @@ func getReposFromConfigInParallel(repoList []Repo, ignoreRepoList []Repo, concur
 			}
 
 			<-ithrottle
-		}(repo, &wait, throttle)
+		}(&repoList[i], &wait, throttle)
 	}
 
 	wait.Wait()

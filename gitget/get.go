@@ -308,9 +308,8 @@ func (repo *Repo) Clone() bool {
 		"",
 	)
 	if err != nil {
-		errorMessage := fmt.Sprintf("%s: %v %v", repo.sha, err, serr.String())
 		repo.status.Error = true
-		log.Error(errorMessage)
+		log.Errorf("%s: %v %v", repo.sha, err, serr.String())
 		return false
 	}
 	return true
@@ -327,9 +326,8 @@ func (repo *Repo) ShallowClone() bool {
 		"",
 	)
 	if err != nil {
-		errorMessage := fmt.Sprintf("%s: %v %v", repo.sha, err, serr.String())
 		repo.status.Error = true
-		log.Error(errorMessage)
+		log.Errorf("%s: %v %v", repo.sha, err, serr.String())
 		return false
 	}
 	return true
@@ -402,9 +400,8 @@ func (repo *Repo) GitStashSave() {
 	var serr bytes.Buffer
 	_, err := repo.ExecGitCommand([]string{"stash", "save"}, nil, &serr, repo.fullPath)
 	if err != nil {
-		errorMessage := fmt.Sprintf("%s: %v: %v", repo.sha, err, serr.String())
 		repo.status.Error = true
-		log.Warn(errorMessage)
+		log.Warnf("%s: %v: %v", repo.sha, err, serr.String())
 	}
 }
 
@@ -413,9 +410,8 @@ func (repo *Repo) GitStashPop() {
 	var serr bytes.Buffer
 	_, err := repo.ExecGitCommand([]string{"stash", "pop"}, nil, &serr, repo.fullPath)
 	if err != nil {
-		errorMessage := fmt.Sprintf("%s: %v: %v", repo.sha, err, serr.String())
 		repo.status.Error = true
-		log.Warn(errorMessage)
+		log.Warnf("%s: %v: %v", repo.sha, err, serr.String())
 	}
 }
 
@@ -455,9 +451,8 @@ func (repo *Repo) GitPull() {
 		var serr bytes.Buffer
 		_, err := repo.ExecGitCommand([]string{"pull", "-f"}, nil, &serr, repo.fullPath)
 		if err != nil {
-			errorMessage := fmt.Sprintf("%s: %v: %v", repo.sha, err, serr.String())
 			repo.status.Error = true
-			log.Error(errorMessage)
+			log.Errorf("%s: %v: %v", repo.sha, err, serr.String())
 		}
 	} else {
 		log.Debugf(
@@ -487,9 +482,8 @@ func (repo *Repo) GitCheckout(branch string) {
 	var serr bytes.Buffer
 	_, err := repo.ExecGitCommand([]string{"checkout", branch}, nil, &serr, repo.fullPath)
 	if err != nil {
-		errorMessage := fmt.Sprintf("%s: %v: %v", repo.sha, err, serr.String())
 		repo.status.Error = true
-		log.Warn(errorMessage)
+		log.Warnf("%s: %v: %v", repo.sha, err, serr.String())
 	}
 	if repo.Ref != branch {
 		repo.status.NotOnRefBranch = true

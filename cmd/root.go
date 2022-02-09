@@ -47,6 +47,7 @@ var dryRun bool
 var gitCloudProviderRootURL string
 var targetClonePath string
 var defaultMainBranch string
+var status bool
 var gitCloudProvider string
 
 // Mirroring specific vars
@@ -83,7 +84,15 @@ git get -c 12 -f Gitfile`,
 			os.Exit(1)
 		}
 		initLogging(logLevel)
-		gitget.GetRepositories(cfgFile, ignoreFile, concurrencyLevel, stayOnRef, shallow, defaultMainBranch)
+		gitget.GetRepositories(
+			cfgFile,
+			ignoreFile,
+			concurrencyLevel,
+			stayOnRef,
+			shallow,
+			defaultMainBranch,
+			status,
+		)
 	},
 }
 
@@ -139,6 +148,10 @@ func init() {
 		"s",
 		false,
 		"Shallow clone, can be used in CI to fetch dependencies by ref")
+	rootCmd.Flags().BoolVar(
+		&status, "status",
+		false,
+		"Print extra status information after clone is performed")
 	rootCmd.Flags().StringVarP(
 		&defaultMainBranch, "default-main-branch",
 		"b",

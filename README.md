@@ -61,7 +61,6 @@ for use in CI/CD.
 
 ```bash
 % git-get --help
-
 'git-get' - all your project repositories
 
 git-get clone/refresh all your local project repositories in
@@ -95,6 +94,7 @@ Flags:
   -i, --ignore-file string           Ignore file (default "~/Gitfile.ignore")
   -l, --log-level string             Logging level [debug|info|warn|error|fatal|panic] (default "info")
   -s, --shallow                      Shallow clone, can be used in CI to fetch dependencies by ref
+      --status                       Print extra status information after clone is performed
   -t, --stay-on-ref                  After refreshing repository from remote stay on ref branch
 
 Use "git-get [command] --help" for more information about a command.

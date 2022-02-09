@@ -96,6 +96,8 @@ type Repo struct {
 	status    RepoStatus // keep track of the repository status after operation to provide summary
 }
 
+type RepoList []Repo
+
 // RepoStatus - data structure to track repository status
 type RepoStatus struct {
 	Processed             bool // by default repository is not processed, and won't be if skipped
@@ -665,12 +667,12 @@ func (repo *Repo) EnsureBitbucketMirrorExists() {
 	}
 }
 
-func getShallowReposFromConfigInParallel(repoList []Repo, ignoreRepoList []Repo, concurrencyLevel int) {
+func getShallowReposFromConfigInParallel(repoList *RepoList, ignoreRepoList []Repo, concurrencyLevel int) {
 	var throttle = make(chan int, concurrencyLevel)
 
 	var wait sync.WaitGroup
 
-	for i := 0; i < len(repoList); i++ {
+	for i := 0; i < len(*repoList); i++ {
 		throttle <- 1
 		wait.Add(1)
 		go func(repository *Repo, iwait *sync.WaitGroup, ithrottle chan int) {
@@ -693,18 +695,18 @@ func getShallowReposFromConfigInParallel(repoList []Repo, ignoreRepoList []Repo,
 			}
 
 			<-ithrottle
-		}(&repoList[i], &wait, throttle)
+		}(&(*repoList)[i], &wait, throttle)
 	}
 
 	wait.Wait()
 }
 
-func getReposFromConfigInParallel(repoList []Repo, ignoreRepoList []Repo, concurrencyLevel int) {
+func getReposFromConfigInParallel(repoList *RepoList, ignoreRepoList []Repo, concurrencyLevel int) {
 	var throttle = make(chan int, concurrencyLevel)
 
 	var wait sync.WaitGroup
 
-	for i := 0; i < len(repoList); i++ {
+	for i := 0; i < len(*repoList); i++ {
 		throttle <- 1
 		wait.Add(1)
 
@@ -728,7 +730,7 @@ func getReposFromConfigInParallel(repoList []Repo, ignoreRepoList []Repo, concur
 			}
 
 			<-ithrottle
-		}(&repoList[i], &wait, throttle)
+		}(&(*repoList)[i], &wait, throttle)
 	}
 
 	wait.Wait()
@@ -815,7 +817,7 @@ func GetRepositories(
 		log.Fatalf("%s: %s", cfgFile, err)
 	}
 
-	var repoList []Repo
+	var repoList *RepoList
 	if err := yaml.Unmarshal(yamlFile, &repoList); err != nil {
 		log.Fatalf("%s: %s", cfgFile, err)
 	}
@@ -832,15 +834,16 @@ func GetRepositories(
 		log.Info("======================")
 		log.Info("= Status Information =")
 		log.Info("======================")
-		for _, repo := range repoList {
+		for _, repo := range *repoList {
 			if repo.status.Processed {
 				log.Infof(
-					"%s: uncommitted: %t, on trunk branch: %t, failed: '%s'",
+					"%s: uncommitted: %t, on trunk branch: %t, failed: '%s', processed: '%s'",
 					repo.URL,
 					repo.status.UncommittedChanges,
 					//repo.status.RefIsBranch,
 					!repo.status.OnFeatureBranch,
 					repo.status.OperationErrorMessage,
+					repo.status.Processed,
 				)
 			}
 		}

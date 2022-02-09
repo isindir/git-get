@@ -816,6 +816,7 @@ func GetRepositories(
 	log.Debugf("Number of repositories to process: '%d'", len(*repoList))
 
 	ignoreRepoList := GetIgnoreRepoList(ignoreFile)
+	log.Debugf("Number of repositories to ignore: '%d'", len(ignoreRepoList))
 
 	if shallow {
 		getShallowReposFromConfigInParallel(repoList, ignoreRepoList, concurrencyLevel)
@@ -823,8 +824,6 @@ func GetRepositories(
 		getReposFromConfigInParallel(repoList, ignoreRepoList, concurrencyLevel)
 	}
 
-	log.Debugf("Number of repositories from processing list: '%d'", len(*repoList))
-	log.Debugf("repoList: '%+v'", *repoList)
 	outFd := os.Stdout
 	w := new(tabwriter.Writer)
 	w.Init(outFd, 12, 2, 2, ' ', 0)

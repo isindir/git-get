@@ -59,16 +59,18 @@ git get mirror -f Gitfile -u "git@github.com:acmeorg" -p "github"
 git-get mirror -c 2 -f Gitfile -l debug -u "git@gitlab.com:acmeorg/mirrors"
 git-get mirror -c 2 -f Gitfile -l debug -u "git@bitbucket.com:acmeorg" -p "bitbucket" -b "mirrors"`,
 	Run: func(cmd *cobra.Command, args []string) {
-		if _, err := os.Stat(cfgFile); os.IsNotExist(err) {
-			log.Fatalln(err)
-			os.Exit(1)
+		for _, cfgFile := range cfgFiles {
+			if _, err := os.Stat(cfgFile); os.IsNotExist(err) {
+				log.Fatalln(err)
+				os.Exit(1)
+			}
 		}
 		initLogging(logLevel)
 		log.Debugf("%t - push to mirror", pushMirror)
 		pushMirror = !dryRun
 		gitget.MirrorRepositories(
-			cfgFile,
-			ignoreFile,
+			cfgFiles,
+			ignoreFiles,
 			concurrencyLevel,
 			pushMirror,
 			gitCloudProviderRootURL,
@@ -90,16 +92,16 @@ func init() {
 
 	defaultValue := filepath.Join(wdir, "Gitfile")
 	defaultIgnoreValue := fmt.Sprintf("%s.ignore", defaultValue)
-	mirrorCmd.Flags().StringVarP(
-		&cfgFile, "config-file",
+	mirrorCmd.Flags().StringSliceVarP(
+		&cfgFiles, "config-file",
 		"f",
-		defaultValue,
-		"Configuration file")
-	mirrorCmd.Flags().StringVarP(
-		&ignoreFile, "ignore-file",
+		[]string{defaultValue},
+		"Configuration file or comma separated list of files")
+	mirrorCmd.Flags().StringSliceVarP(
+		&ignoreFiles, "ignore-file",
 		"i",
-		defaultIgnoreValue,
-		"Ignore file")
+		[]string{defaultIgnoreValue},
+		"Ignore file or comma separated list of files")
 	mirrorCmd.Flags().StringVarP(
 		&logLevel, "log-level",
 		"l",

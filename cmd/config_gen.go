@@ -57,7 +57,7 @@ git-get config-gen -f Gitfile -p "github" -u "git@github.com:AcmeOrg" -t AcmeOrg
 		initLogging(logLevel)
 		log.Debug("Generate Gitfile configuration file")
 		gitget.GenerateGitfileConfig(
-			cfgFile, ignoreFile, gitCloudProviderRootURL, gitCloudProvider, targetClonePath, configGenParams)
+			cfgFile, ignoreFiles, gitCloudProviderRootURL, gitCloudProvider, targetClonePath, configGenParams)
 	},
 }
 
@@ -77,11 +77,11 @@ func init() {
 		"f",
 		defaultValue,
 		"Configuration file")
-	configGenCmd.Flags().StringVarP(
-		&ignoreFile, "ignore-file",
+	configGenCmd.Flags().StringSliceVarP(
+		&ignoreFiles, "ignore-file",
 		"i",
-		defaultIgnoreValue,
-		"Ignore file")
+		[]string{defaultIgnoreValue},
+		"Ignore file or comma separated list of files")
 	configGenCmd.Flags().StringVarP(
 		&logLevel,
 		"log-level",

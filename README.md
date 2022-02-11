@@ -61,6 +61,7 @@ for use in CI/CD.
 
 ```bash
 % git-get --help
+
 'git-get' - all your project repositories
 
 git-get clone/refresh all your local project repositories in
@@ -78,6 +79,10 @@ Usage:
 Examples:
 
 git get -c 12 -f Gitfile
+git get -c 12 -f Gitfile.1 -f Gitfile.2 -f Gitfile.3,Gitfile.4
+git get -c 12 -f Gitfile -i Gitfile.ignore.1 -i Gitfile.ignore.2
+git get -c 8 -f Gitfile --status -i Gitfile.ignore -l panic \
+  | awk '$0 ~ /REPOSITORY/ || $3 ~ /true/ { print $0 }'
 
 Available Commands:
   completion  Generate the autocompletion script for the specified shell
@@ -88,10 +93,10 @@ Available Commands:
 
 Flags:
   -c, --concurrency-level int        Git get concurrency level (default 1)
-  -f, --config-file string           Configuration file (default "~/Gitfile")
+  -f, --config-file strings          Configuration file or comma separated list of files (default [~/Gitfile])
   -b, --default-main-branch string   Default main branch (default "master")
   -h, --help                         help for git-get
-  -i, --ignore-file string           Ignore file (default "~/Gitfile.ignore")
+  -i, --ignore-file strings          Ignore file or comma separated list of files (default [~/Gitfile.ignore])
   -l, --log-level string             Logging level [debug|info|warn|error|fatal|panic] (default "info")
   -s, --shallow                      Shallow clone, can be used in CI to fetch dependencies by ref
       --status                       Print extra status information after clone is performed
@@ -138,7 +143,7 @@ Flags:
       --gitlab-owned                                Gitlab: only traverse groups and repositories owned by user
       --gitlab-project-visibility string            Gitlab: project visibility [public|internal|private]
   -h, --help                                        help for config-gen
-  -i, --ignore-file string                          Ignore file (default "~/Gitfile.ignore")
+  -i, --ignore-file strings                         Ignore file or comma separated list of files (default [~/Gitfile.ignore])
   -l, --log-level string                            Logging level [debug|info|warn|error|fatal|panic] (default "info")
   -t, --target-clone-path string                    Target clone path used to set 'path' for each repository in Gitfile
 ```
@@ -176,10 +181,10 @@ git-get mirror -c 2 -f Gitfile -l debug -u "git@bitbucket.com:acmeorg" -p "bitbu
 Flags:
   -b, --bitbucket-mirror-project-name string   Bitbucket mirror project name (only effective for Bitbucket and is optional)
   -c, --concurrency-level int                  Git get concurrency level (default 1)
-  -f, --config-file string                     Configuration file (default "~/Gitfile")
+  -f, --config-file strings                    Configuration file or comma separated list of files (default [~/Gitfile])
   -d, --dry-run                                Dry-run - do not push to remote mirror repositories
   -h, --help                                   help for mirror
-  -i, --ignore-file string                     Ignore file (default "~/Gitfile.ignore")
+  -i, --ignore-file strings                    Ignore file or comma separated list of files (default [~/Gitfile.ignore])
   -l, --log-level string                       Logging level [debug|info|warn|error|fatal|panic] (default "info")
   -p, --mirror-provider string                 Git mirror provider name [gitlab|github|bitbucket] (default "gitlab")
   -u, --mirror-url string                      Private Mirror URL prefix to push repositories to (example: git@github.com:acmeorg)

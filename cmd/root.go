@@ -37,7 +37,8 @@ import (
 var configGenParams gitget.ConfigGenParamsStruct
 
 var cfgFile string
-var ignoreFile string
+var cfgFiles []string
+var ignoreFiles []string
 var logLevel string
 var stayOnRef bool
 var shallow bool
@@ -77,16 +78,20 @@ structure of the project. git-get allows to create symlinks
 to cloned repositories, clone one repository multiple time
 having different directory name.`,
 	Example: `
-git get -c 12 -f Gitfile`,
+git get -c 12 -f Gitfile
+git get -c 8 -f Gitfile --status -i Gitfile.ignore -l panic \
+  | awk '$0 ~ /REPOSITORY/ || $3 ~ /true/ { print $0 }'`,
 	Run: func(cmd *cobra.Command, args []string) {
-		if _, err := os.Stat(cfgFile); os.IsNotExist(err) {
-			log.Fatalln(err)
-			os.Exit(1)
+		for _, cfgFile := range cfgFiles {
+			if _, err := os.Stat(cfgFile); os.IsNotExist(err) {
+				log.Fatalln(err)
+				os.Exit(1)
+			}
 		}
 		initLogging(logLevel)
 		gitget.GetRepositories(
-			cfgFile,
-			ignoreFile,
+			cfgFiles,
+			ignoreFiles,
 			concurrencyLevel,
 			stayOnRef,
 			shallow,
@@ -118,16 +123,16 @@ func init() {
 
 	defaultValue := filepath.Join(wdir, "Gitfile")
 	defaultIgnoreValue := fmt.Sprintf("%s.ignore", defaultValue)
-	rootCmd.Flags().StringVarP(
-		&cfgFile, "config-file",
+	rootCmd.Flags().StringSliceVarP(
+		&cfgFiles, "config-file",
 		"f",
-		defaultValue,
-		"Configuration file")
-	rootCmd.Flags().StringVarP(
-		&ignoreFile, "ignore-file",
+		[]string{defaultValue},
+		"Configuration file or comma separated list of files")
+	rootCmd.Flags().StringSliceVarP(
+		&ignoreFiles, "ignore-file",
 		"i",
-		defaultIgnoreValue,
-		"Ignore file")
+		[]string{defaultIgnoreValue},
+		"Ignore file or comma separated list of files")
 	rootCmd.Flags().StringVarP(
 		&logLevel, "log-level",
 		"l",

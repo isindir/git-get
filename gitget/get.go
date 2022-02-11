@@ -502,7 +502,6 @@ func (repo *Repo) ProcessRepoBasedOnCurrentBranch() {
 		repo.ProcessRepoBasedOnCleaness()
 
 		if !stayOnRef {
-			// TODO: check how to set status for this
 			repo.GitCheckout(currentBranch)
 		} else {
 			log.Debugf("%s: Stay on ref branch '%s'", repo.sha, colorRef.Sprintf(repo.Ref))
@@ -671,8 +670,8 @@ func getShallowReposFromConfigInParallel(repoList *RepoList, ignoreRepoList []Re
 			defer iwait.Done()
 
 			if !ignoreThisRepo(repository.URL, ignoreRepoList) {
-				log.Debugf("%s: process repo: '%s'", repository.sha, repository.URL)
 				repository.PrepareForGet()
+				log.Debugf("%s: process repo: '%s'", repository.sha, repository.URL)
 				if repository.RepoPathExists() {
 					log.Debugf("%s: path '%s' exists - removing target path", repository.sha, repository.fullPath)
 					repository.RemoveTargetDir(false)
@@ -706,8 +705,8 @@ func getReposFromConfigInParallel(repoList *RepoList, ignoreRepoList []Repo, con
 			defer iwait.Done()
 
 			if !ignoreThisRepo(repository.URL, ignoreRepoList) {
-				log.Debugf("%s: process repo: '%s'", repository.sha, repository.URL)
 				repository.PrepareForGet()
+				log.Debugf("%s: process repo: '%s'", repository.sha, repository.URL)
 				if !repository.RepoPathExists() {
 					// Clone
 					log.Debugf("%s: path '%s' missing - cloning", repository.sha, repository.fullPath)
@@ -729,7 +728,7 @@ func getReposFromConfigInParallel(repoList *RepoList, ignoreRepoList []Repo, con
 }
 
 func mirrorReposFromConfigInParallel(
-	repoList []Repo,
+	repoList *RepoList,
 	ignoreRepoList []Repo,
 	concurrencyLevel int,
 	pushMirror bool,
@@ -747,11 +746,11 @@ func mirrorReposFromConfigInParallel(
 	}
 	defer os.RemoveAll(tempDir)
 
-	for _, repo := range repoList {
+	for i := 0; i < len(*repoList); i++ {
 		throttle <- 1
 		wait.Add(1)
 
-		go func(repository Repo, iwait *sync.WaitGroup, ithrottle chan int) {
+		go func(repository *Repo, iwait *sync.WaitGroup, ithrottle chan int) {
 			defer iwait.Done()
 
 			if !ignoreThisRepo(repository.URL, ignoreRepoList) {
@@ -769,7 +768,7 @@ func mirrorReposFromConfigInParallel(
 			}
 
 			<-ithrottle
-		}(repo, &wait, throttle)
+		}(&(*repoList)[i], &wait, throttle)
 	}
 
 	wait.Wait()
@@ -792,8 +791,8 @@ func processConfig(repoList []Repo) {
 }
 
 func GetRepositories(
-	cfgFile string,
-	ignoreFile string,
+	cfgFiles []string,
+	ignoreFiles []string,
 	concurrencyLevel int,
 	stickToRef bool,
 	shallow bool,
@@ -804,19 +803,11 @@ func GetRepositories(
 	stayOnRef = stickToRef
 	defaultMainBranch = defaultTrunkBranch
 
-	yamlFile, err := ioutil.ReadFile(cfgFile)
-	if err != nil {
-		log.Fatalf("%s: %s", cfgFile, err)
-	}
+	repoList := GetConfigRepoList(cfgFiles)
+	log.Debugf("Total number of repositories to process: '%d'", len(*repoList))
 
-	var repoList *RepoList
-	if err := yaml.Unmarshal(yamlFile, &repoList); err != nil {
-		log.Fatalf("%s: %s", cfgFile, err)
-	}
-	log.Debugf("Number of repositories to process: '%d'", len(*repoList))
-
-	ignoreRepoList := GetIgnoreRepoList(ignoreFile)
-	log.Debugf("Number of repositories to ignore: '%d'", len(ignoreRepoList))
+	ignoreRepoList := GetIgnoreRepoList(ignoreFiles)
+	log.Debugf("Total number of repositories to ignore: '%d'", len(ignoreRepoList))
 
 	if shallow {
 		getShallowReposFromConfigInParallel(repoList, ignoreRepoList, concurrencyLevel)
@@ -1040,18 +1031,48 @@ func writeReposToFile(repoSha string, cfgFile string, repoList []Repo) {
 	}
 }
 
-// GetIgnoreRepoList - tries to read ignore file if it is existing and returns list of repositories
-func GetIgnoreRepoList(ignoreFile string) []Repo {
+// GetConfigRepoList - tries to read config files from the list,
+// if these are existing and returns list of repositories, if any file
+// is missing - it fails
+func GetConfigRepoList(cfgFiles []string) *RepoList {
+	var mergedRepoList []Repo
+	for _, cfgFile := range cfgFiles {
+		var singleRepoList []Repo
+		yamlFile, err := ioutil.ReadFile(cfgFile)
+		if err != nil {
+			log.Fatalf("%s: %s", cfgFile, err)
+		}
+
+		if err := yaml.Unmarshal(yamlFile, &singleRepoList); err != nil {
+			log.Fatalf("%s: %s", cfgFile, err)
+		}
+		log.Debugf("Number of repositories to process from '%s': '%d'", cfgFile, len(singleRepoList))
+		// Join lists here - conversions needed
+		mergedRepoList = append(mergedRepoList, singleRepoList...)
+	}
+	repoList := RepoList(mergedRepoList)
+	return &repoList
+}
+
+// GetIgnoreRepoList - tries to read ignore files from the list,
+// if these are existing and returns list of repositories
+func GetIgnoreRepoList(ignoreFiles []string) []Repo {
 	var ignoreRepoList []Repo
 
-	yamlIgnoreFile, err := ioutil.ReadFile(ignoreFile)
-	if err != nil {
-		log.Warnf("Ignoring missing file: %s", err)
-		return ignoreRepoList
-	}
+	for _, ignoreFile := range ignoreFiles {
+		var singleFileIgnoreRepoList []Repo
+		yamlIgnoreFile, err := ioutil.ReadFile(ignoreFile)
+		if err != nil {
+			log.Warnf("Ignoring missing file: %s", err)
+			return ignoreRepoList
+		}
 
-	if err := yaml.Unmarshal(yamlIgnoreFile, &ignoreRepoList); err != nil {
-		log.Fatalf("%s: %s", ignoreFile, err)
+		if err := yaml.Unmarshal(yamlIgnoreFile, &singleFileIgnoreRepoList); err != nil {
+			log.Fatalf("%s: %s", ignoreFile, err)
+		}
+		log.Debugf("Number of repositories to ignore from '%s': '%d'", ignoreFile, len(singleFileIgnoreRepoList))
+
+		ignoreRepoList = append(ignoreRepoList, singleFileIgnoreRepoList...)
 	}
 
 	return ignoreRepoList
@@ -1060,7 +1081,7 @@ func GetIgnoreRepoList(ignoreFile string) []Repo {
 // GenerateGitfileConfig - Entry point for Gitfile generation logic
 func GenerateGitfileConfig(
 	cfgFile string,
-	ignoreFile string,
+	ignoreFiles []string,
 	gitCloudProviderRootURL string,
 	gitCloudProvider string,
 	targetClonePath string,
@@ -1070,7 +1091,9 @@ func GenerateGitfileConfig(
 	repoSha := generateSha(gitCloudProviderRootURL)
 	var repoList []Repo
 
-	ignoreRepoList := GetIgnoreRepoList(ignoreFile)
+	ignoreRepoList := GetIgnoreRepoList(ignoreFiles)
+	log.Debugf("Total number of repositories to ignore: '%d'", len(ignoreRepoList))
+
 	gitProvider = gitCloudProvider
 
 	switch gitCloudProvider {
@@ -1090,8 +1113,8 @@ func GenerateGitfileConfig(
 
 // MirrorRepositories - Entry point for mirror creation/update logic
 func MirrorRepositories(
-	cfgFile string,
-	ignoreFile string,
+	cfgFiles []string,
+	ignoreFiles []string,
 	concurrencyLevel int,
 	pushMirror bool,
 	mirrorRootURL string,
@@ -1104,17 +1127,11 @@ func MirrorRepositories(
 	mirrorVisibilityMode = mirrorVisibilityModeName
 	bitbucketMirrorProject = mirrorBitbucketProjectName
 
-	yamlFile, err := ioutil.ReadFile(cfgFile)
-	if err != nil {
-		log.Fatalf("%s: %s", cfgFile, err)
-	}
+	repoList := GetConfigRepoList(cfgFiles)
+	log.Debugf("Total number of repositories to process: '%d'", len(*repoList))
 
-	var repoList []Repo
-	if err := yaml.Unmarshal(yamlFile, &repoList); err != nil {
-		log.Fatalf("%s: %s", cfgFile, err)
-	}
-
-	ignoreRepoList := GetIgnoreRepoList(ignoreFile)
+	ignoreRepoList := GetIgnoreRepoList(ignoreFiles)
+	log.Debugf("Total number of repositories to ignore: '%d'", len(ignoreRepoList))
 
 	mirrorReposFromConfigInParallel(repoList, ignoreRepoList, concurrencyLevel, pushMirror, mirrorRootURL)
 }

@@ -68,7 +68,8 @@ var levels = map[string]log.Level{
 var rootCmd = &cobra.Command{
 	Use:   "git-get",
 	Short: "'git-get' - all your project repositories",
-	Long: `'git-get' - all your project repositories
+	Long: `
+'git-get' - all your project repositories
 
 git-get clone/refresh all your local project repositories in
 one go.
@@ -79,6 +80,8 @@ to cloned repositories, clone one repository multiple time
 having different directory name.`,
 	Example: `
 git get -c 12 -f Gitfile
+git get -c 12 -f Gitfile.1 -f Gitfile.2 -f Gitfile.3,Gitfile.4
+git get -c 12 -f Gitfile -i Gitfile.ignore.1 -i Gitfile.ignore.2
 git get -c 8 -f Gitfile --status -i Gitfile.ignore -l panic \
   | awk '$0 ~ /REPOSITORY/ || $3 ~ /true/ { print $0 }'`,
 	Run: func(cmd *cobra.Command, args []string) {

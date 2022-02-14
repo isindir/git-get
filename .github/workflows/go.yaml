@@ -73,7 +73,9 @@ jobs:
     - name: Release
       shell: bash
       run: |
-        make release
+        git tag "$(svu next)"
+        git push --tags
+        goreleaser release --rm-dist
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}

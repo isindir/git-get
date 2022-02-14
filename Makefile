@@ -63,9 +63,3 @@ clean: ## Removes build artifacts from source code
 update-here: ## Helper target to start editing all occurances with UPDATE_HERE.
 	@echo "Update following files for release:"
 	@grep --color -nHR UPDATE_HERE .
-
-.PHONY: release
-release: ## Release application
-	git tag "$(svu next)"
-	git push --tags
-	$(GOR) release --rm-dist

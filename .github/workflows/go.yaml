@@ -1,9 +1,7 @@
 # UPDATE_HERE
 name: build-git-get
 
-on:
-  pull_request:
-  push:
+on: [push]
 
 permissions:
   contents: write

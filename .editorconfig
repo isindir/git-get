@@ -22,16 +22,27 @@ indent_style = space
 indent_style = space
 indent_size = 2
 
-[*.{scala,rb,java,groovy}]
+[*.{scala,java,groovy,kt,kts,ktm}]
+indent_style = space
+indent_size = 2
+
+; Ruby
+[*.{rb,erb,haml,slim}]
 indent_style = space
 indent_size = 2
 
 ; GoLang
 [*.go]
 indent_style = tab
+max_line_length = 120
 ;
 ; YAML
 [*.{yml,yaml}]
+indent_style = space
+indent_size = 2
+
+; YAML.GOTMPL
+[*.{yml,yaml}.gotmpl]
 indent_style = space
 indent_size = 2
 
@@ -41,7 +52,7 @@ max_line_length = 0
 indent_size = 2
 
 ; Javascript, Typescript, json
-[*.{ts,js,json}]
+[*.{ts,js,json,vue}]
 indent_style = space
 indent_size = 2
 
@@ -63,7 +74,7 @@ indent_style = space
 indent_size = 2
 
 ; shell
-[*.{sh,bash,zsh,ksh}]
+[*.{sh,bash,zsh,ksh},.zshrc,.bashrc]
 indent_style = space
 
 ; Dockerfile

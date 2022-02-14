@@ -1,14 +1,10 @@
 SHELL = /usr/bin/env bash -o pipefail
 .SHELLFLAGS = -ec
 GO := GOPROXY=https://proxy.golang.org go
-
-VERSION:="0.0.12"
-EXE:="git-get"
-BUILD:=`git rev-parse --short HEAD`
-TIME:=`date`
+GOR := goreleaser
 SRC = $(shell find . -type f -name '*.go' -not -path "./vendor/*")
 
-all: clean tidy fmt vet test build
+all: clean fmt vet test build
 
 ##@ General
 
@@ -28,40 +24,7 @@ help: ## Display this help.
 
 .PHONY: build
 build: ## Builds the binary file
-	@GO111MODULE=on GOOS=darwin GOARCH=amd64 $(GO) build \
-		-ldflags="-X 'github.com/isindir/git-get/version.Version=v${VERSION}' \
-		-X 'github.com/isindir/git-get/version.Commit=${BUILD}' \
-		-X 'github.com/isindir/git-get/version.Time=${TIME}' " \
-	  -o ./bin/${EXE}-${VERSION}-osx-amd64 main.go
-	@GO111MODULE=on GOOS=darwin GOARCH=arm64 $(GO) build \
-		-ldflags="-X 'github.com/isindir/git-get/version.Version=v${VERSION}' \
-		-X 'github.com/isindir/git-get/version.Commit=${BUILD}' \
-		-X 'github.com/isindir/git-get/version.Time=${TIME}' " \
-	  -o ./bin/${EXE}-${VERSION}-osx-arm64 main.go
-	@GO111MODULE=on GOOS=linux GOARCH=amd64 $(GO) build \
-		-ldflags="-X 'github.com/isindir/git-get/version.Version=v${VERSION}' \
-		-X 'github.com/isindir/git-get/version.Commit=${BUILD}' \
-		-X 'github.com/isindir/git-get/version.Time=${TIME}' " \
-	  -o ./bin/${EXE}-${VERSION}-linux-amd64 main.go
-	@GO111MODULE=on GOOS=linux GOARCH=arm64 $(GO) build \
-		-ldflags="-X 'github.com/isindir/git-get/version.Version=v${VERSION}' \
-		-X 'github.com/isindir/git-get/version.Commit=${BUILD}' \
-		-X 'github.com/isindir/git-get/version.Time=${TIME}' " \
-	  -o ./bin/${EXE}-${VERSION}-linux-arm64 main.go
-	@GO111MODULE=on GOOS=windows GOARCH=amd64 $(GO) build \
-		-ldflags="-X 'github.com/isindir/git-get/version.Version=v${VERSION}' \
-		-X 'github.com/isindir/git-get/version.Commit=${BUILD}' \
-		-X 'github.com/isindir/git-get/version.Time=${TIME}' " \
-	  -o ./bin/${EXE}-${VERSION}-windows-amd64.exe main.go
-	@GO111MODULE=on GOOS=windows GOARCH=arm64 $(GO) build \
-		-ldflags="-X 'github.com/isindir/git-get/version.Version=v${VERSION}' \
-		-X 'github.com/isindir/git-get/version.Commit=${BUILD}' \
-		-X 'github.com/isindir/git-get/version.Time=${TIME}' " \
-	  -o ./bin/${EXE}-${VERSION}-windows-arm64.exe main.go
-	@$(GO) build -ldflags="-X 'github.com/isindir/git-get/version.Version=v${VERSION}' \
-		-X 'github.com/isindir/git-get/version.Commit=${BUILD}' \
-		-X 'github.com/isindir/git-get/version.Time=${TIME}' " \
-		-o ./bin/${EXE} main.go
+	$(GOR) build --rm-dist --snapshot
 
 .PHONY: run
 run: ## Runs main help
@@ -94,32 +57,7 @@ clean: ## Removes build artifacts from source code
 	@echo "Cleaning"
 	@rm -fr bin
 	@rm -fr vendor
-	@rm -fr chglog.tmp
 	@echo
-
-.PHONY: repo-tag
-repo-tag: ## Tags git repository with latest version
-	@{ \
-		version=$$( echo ${VERSION} ) ; \
-		set +e ; \
-		git show-ref --quiet --verify "refs/tags/$$version" ; \
-		res=$$? ; \
-		set -e ; \
-		if [[ ! $$res -eq 0 ]]; then \
-			git tag -a $$version -m "git-tag $$version" ; \
-		fi ; \
-	}
-
-.PHONY: tidy
-tidy: ## Fetches dependencies
-	@echo "Go Mod Vendor"
-	$(GO) mod tidy
-	$(GO) mod vendor
-	@echo
-
-.PHONY: echo
-echo: ## Prints image name and version of the tool
-	@echo "git-get ${VERSION} ${BUILD}"
 
 .PHONY: update-here
 update-here: ## Helper target to start editing all occurances with UPDATE_HERE.
@@ -128,17 +66,6 @@ update-here: ## Helper target to start editing all occurances with UPDATE_HERE.
 
 .PHONY: release
 release: ## Release application
-	@{ \
-		version=$$( echo ${VERSION} ) ; \
-		exe=$$( echo ${EXE} ) ; \
-		set +e ; \
-		git show-ref --quiet --verify "refs/tags/$$version" ; \
-		res=$$? ; \
-		set -e ; \
-		if [[ ! $$res -eq 0 ]]; then \
-			git tag -a $$version -m "git-tag $$version" ; \
-			git-chglog "$$version" > chglog.tmp ; \
-			hub release create -F chglog.tmp "$$version" -a ./bin/${EXE}-${VERSION}-osx-amd64 -a ./bin/${EXE}-${VERSION}-linux-amd64 -a ./bin/${EXE}-${VERSION}-osx-arm64 -a ./bin/${EXE}-${VERSION}-linux-arm64 -a ./bin/${EXE}-${VERSION}-windows-amd64.exe -a ./bin/${EXE}-${VERSION}-windows-arm64.exe ; \
-			rm -f chglog.tmp ; \
-		fi ; \
-	}
+	git tag "$(svu next)"
+	git push --tags
+	$(GOR) release --rm-dist

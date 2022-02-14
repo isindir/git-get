@@ -1,6 +1,11 @@
 # UPDATE_HERE
 name: build-git-get
+
 on: [push]
+
+permissions:
+  contents: write
+
 jobs:
 
   build:
@@ -9,30 +14,16 @@ jobs:
     if: github.ref != 'refs/heads/master'
     steps:
 
-    - name: Set up Go 1.17.6
+    - name: Set up Go 1.17.7
       uses: actions/setup-go@v1
       with:
-        go-version: 1.17.6
+        go-version: 1.17.7
       id: go
 
-    - name: Check out code into the Go module directory
-      uses: actions/checkout@v2
-
-    - name: Build and Test
-      run: |
-        make
-
-  release:
-    name: Release
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/master'
-    steps:
-
-    - name: Set up Go 1.17.6
-      uses: actions/setup-go@v1
+    - name: Install GoReleaser
+      uses: goreleaser/goreleaser-action@v2
       with:
-        go-version: 1.17.6
-      id: go
+        install-only: true
 
     - name: Check out code into the Go module directory
       uses: actions/checkout@v2
@@ -42,21 +33,47 @@ jobs:
         git fetch --prune --unshallow
         git pull --tags
 
-    - name: Build and Test
+    - name: Test and Build
       run: |
         make
 
-    - name: Run hub release
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master'
+    steps:
+
+    - name: Set up Go 1.17.7
+      uses: actions/setup-go@v1
+      with:
+        go-version: 1.17.7
+      id: go
+
+    - name: Install GoReleaser
+      uses: goreleaser/goreleaser-action@v2
+      with:
+        install-only: true
+
+    - name: Install svu
+      run: |
+        curl -L https://github.com/caarlos0/svu/releases/download/v1.9.0/svu_1.9.0_linux_amd64.tar.gz | sudo tar -C /usr/local/bin/ -xz -f - svu
+
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v2
+
+    - name: Check out full code history
+      run: |
+        git fetch --prune --unshallow
+        git pull --tags
+
+    - name: Test and Build
+      run: |
+        make
+
+    - name: Release
       shell: bash
       run: |
-        curl -fsSL https://github.com/github/hub/raw/master/script/get | bash -s 2.14.1
-        curl -LO https://github.com/git-chglog/git-chglog/releases/download/0.9.1/git-chglog_linux_386
-        mv git-chglog_linux_386 bin/git-chglog
-        chmod +x bin/git-chglog
-        #go get -u github.com/git-chglog/git-chglog/cmd/git-chglog
-        export PATH=$( pwd )/bin:$PATH
-        git config --global user.email "isindir@users.sf.net"
-        git config --global user.name "Eriks Zelenka"
         make release
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}

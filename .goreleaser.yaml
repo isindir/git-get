@@ -17,7 +17,7 @@ builds:
       - windows
       - darwin
     ldflags:
-      - "-s -w -X github.com/isindir/git-get/version.Version={{.Version}} -X github.com/isindir/git-get/version.Commit={{.ShortCommit}} -X github.com/isindir/git-get/version.Time={{.CommitDate}}"
+      - "-s -w -X github.com/isindir/git-get/version.Version=v{{.Version}} -X github.com/isindir/git-get/version.Commit={{.ShortCommit}} -X github.com/isindir/git-get/version.Time={{.CommitDate}}"
 brews:
   - name: git-get
     tap:

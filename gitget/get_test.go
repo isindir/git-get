@@ -6,6 +6,8 @@ package gitget
 import (
 	"path"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 var repoUrls = map[string]string{
@@ -15,24 +17,17 @@ var repoUrls = map[string]string{
 	"https://gitlab.com/devops/deploy/deployment-jobs.git": "deployment-jobs",
 }
 
-type testGitGetRepo struct {
-}
-
 func TestSetDefaultRef(t *testing.T) {
 	repo := Repo{}
 
 	// Test setting to default if not specified
 	repo.SetDefaultRef()
-	if repo.Ref != "master" {
-		t.Errorf("Expected 'master', got: '%s'", repo.Ref)
-	}
+	assert.Equal(t, "master", repo.Ref)
 
 	// Test that if already set - setting to default has no effect
 	repo.Ref = "trunk"
 	repo.SetDefaultRef()
-	if repo.Ref != "trunk" {
-		t.Errorf("Expected 'trunk', got: '%s'", repo.Ref)
-	}
+	assert.Equal(t, "trunk", repo.Ref)
 }
 
 func TestGetRepoLocalName(t *testing.T) {
@@ -43,17 +38,13 @@ func TestGetRepoLocalName(t *testing.T) {
 		repo := Repo{}
 		repo.URL = repoURL
 		altname = repo.GetRepoLocalName()
-		if altname != expectedAltName {
-			t.Errorf("Expected '%s', got: '%s'", expectedAltName, altname)
-		}
+		assert.Equal(t, expectedAltName, altname)
 	}
 
 	repo := Repo{}
 	repo.AltName = "abc"
 	altname = repo.GetRepoLocalName()
-	if altname != "abc" {
-		t.Errorf("Expected 'abc', got: '%s'", altname)
-	}
+	assert.Equal(t, "abc", altname)
 }
 
 func TestSetRepoLocalName(t *testing.T) {
@@ -62,17 +53,13 @@ func TestSetRepoLocalName(t *testing.T) {
 		repo := Repo{}
 		repo.URL = repoURL
 		repo.SetRepoLocalName()
-		if repo.AltName != expectedAltName {
-			t.Errorf("Expected '%s', got: '%s'", expectedAltName, repo.AltName)
-		}
+		assert.Equal(t, expectedAltName, repo.AltName)
 	}
 
 	repo := Repo{}
 	repo.AltName = "abc"
 	repo.SetRepoLocalName()
-	if repo.AltName != "abc" {
-		t.Errorf("Expected 'abc', got: '%s'", repo.AltName)
-	}
+	assert.Equal(t, "abc", repo.AltName)
 }
 
 func TestSetSha(t *testing.T) {
@@ -82,9 +69,7 @@ func TestSetSha(t *testing.T) {
 	repo.fullPath = "/Users/erikszelenka/workspace/eriks/git-get/git-get"
 
 	repo.SetSha()
-	if repo.sha != "28f4e2d" {
-		t.Errorf("Expected '28f4e2d', got: '%s'", repo.sha)
-	}
+	assert.Equal(t, "28f4e2d", repo.sha)
 }
 
 func TestSetRepoFullPath(t *testing.T) {
@@ -95,23 +80,17 @@ func TestSetRepoFullPath(t *testing.T) {
 	expectedFullPath := path.Join("qqq", "abc")
 
 	repo.SetRepoFullPath()
-	if repo.fullPath != expectedFullPath {
-		t.Errorf("Expected '%s', got: '%s'", expectedFullPath, repo.fullPath)
-	}
+	assert.Equal(t, expectedFullPath, repo.fullPath)
 }
 
 func TestPathExists(t *testing.T) {
 	// Test Happy path
 	res, _ := PathExists(".")
-	if !res {
-		t.Errorf("Expected '.' path to exist, got: '%v'", res)
-	}
+	assert.True(t, res)
 
 	// Test path not found
 	res, _ = PathExists("NotExpectedToFindMe")
-	if res {
-		t.Errorf("Expected 'NotExpectedToFindMe' path to NOT exist, got: '%v'", res)
-	}
+	assert.False(t, res)
 }
 
 func TestRepoPathExists(t *testing.T) {
@@ -120,15 +99,11 @@ func TestRepoPathExists(t *testing.T) {
 		fullPath: ".",
 	}
 
-	if !repo.RepoPathExists() {
-		t.Errorf("Expected '.' path to exist")
-	}
+	assert.True(t, repo.RepoPathExists())
 
 	// Test path not found
 	repo.fullPath = "NotExpectedToFindMe"
-	if repo.RepoPathExists() {
-		t.Errorf("Expected 'NotExpectedToFindMe' path to NOT exist")
-	}
+	assert.False(t, repo.RepoPathExists())
 }
 
 //(t *testing.T) {

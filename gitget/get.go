@@ -66,11 +66,11 @@ type ConfigGenParamsStruct struct {
 	GitlabVisibility     string
 	GitlabMinAccessLevel string
 
-	// Girhub specific vars
+	// GitHub specific vars
 	GithubVisibility  string
 	GithubAffiliation string
 
-	// Bitbicket specific vars
+	// Bitbucket specific vars
 	/*
 		MAYBE: implement for bitbucket to allow subset of repositories
 		BitbucketDivision string
@@ -97,6 +97,7 @@ type Repo struct {
 	status    RepoStatus // keep track of the repository status after operation to provide summary
 }
 
+// RepoList is a slice of Repo structs
 type RepoList []Repo
 
 // RepoStatus - data structure to track repository status
@@ -192,6 +193,7 @@ func (repo *Repo) EnsurePathExists(pathPrefix string) {
 	}
 }
 
+// SetRepoLocalName sets struct AltName to short name obtained from repository uri
 func (repo *Repo) SetRepoLocalName() {
 	repo.AltName = repo.GetRepoLocalName()
 }
@@ -203,7 +205,11 @@ func (repo *Repo) SetSha() {
 
 func generateSha(input string) string {
 	h := sha1.New()
-	io.WriteString(h, input)
+	_, err := io.WriteString(h, input)
+	if err != nil {
+		log.Fatalln(err)
+		os.Exit(1)
+	}
 	return fmt.Sprintf("%x", h.Sum(nil))[0:7]
 }
 

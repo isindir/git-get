@@ -52,6 +52,11 @@ fmt: ## Run go fmt against code.
 vet: ## Run go vet against code.
 	$(GO) vet ./...
 
+.PHONY: mod
+mod: ## Run go mod tidy/vendor
+	$(GO) mod tidy
+	$(GO) mod vendor
+
 .PHONY: clean
 clean: ## Removes build artifacts from source code
 	@echo "Cleaning"

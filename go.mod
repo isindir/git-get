@@ -5,7 +5,7 @@ go 1.17
 
 require (
 	github.com/fatih/color v1.13.0
-	github.com/google/go-github/v42 v42.0.0
+	github.com/google/go-github/v43 v43.0.0
 	github.com/ktrysmt/go-bitbucket v0.9.36
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/cobra v1.3.0

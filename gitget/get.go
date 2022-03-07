@@ -203,12 +203,12 @@ func (repo *Repo) SetSha() {
 	repo.sha = generateSha(fmt.Sprintf("%s (%s) %s", repo.URL, repo.Ref, repo.fullPath))
 }
 
+// generateSha returns sha of the string passed in or "unknown" if error occurs
 func generateSha(input string) string {
 	h := sha1.New()
 	_, err := io.WriteString(h, input)
 	if err != nil {
-		log.Fatalln(err)
-		os.Exit(1)
+		return "unknown"
 	}
 	return fmt.Sprintf("%x", h.Sum(nil))[0:7]
 }
@@ -368,13 +368,19 @@ func (repo *Repo) IsClean() bool {
 
 func (repo *Repo) IsCurrentBranchRef() bool {
 	var outb, errb bytes.Buffer
-	repo.ExecGitCommand([]string{"rev-parse", "--abbrev-ref", "HEAD"}, &outb, &errb, repo.fullPath)
+	_, err := repo.ExecGitCommand([]string{"rev-parse", "--abbrev-ref", "HEAD"}, &outb, &errb, repo.fullPath)
+	if err != nil {
+		log.Errorf("%s: Error when checking branch %v", repo.sha, err)
+	}
 	return (strings.TrimSpace(outb.String()) == repo.Ref)
 }
 
 func (repo *Repo) GetCurrentBranch() string {
 	var outb, errb bytes.Buffer
-	repo.ExecGitCommand([]string{"rev-parse", "--abbrev-ref", "HEAD"}, &outb, &errb, repo.fullPath)
+	_, err := repo.ExecGitCommand([]string{"rev-parse", "--abbrev-ref", "HEAD"}, &outb, &errb, repo.fullPath)
+	if err != nil {
+		log.Errorf("%s: Error when getting branch %v", repo.sha, err)
+	}
 	return strings.TrimSpace(outb.String())
 }
 

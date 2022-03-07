@@ -106,4 +106,25 @@ func TestRepoPathExists(t *testing.T) {
 	assert.False(t, repo.RepoPathExists())
 }
 
+func Test_generateSha(t *testing.T) {
+	type testCase struct {
+		name           string
+		repoInfo       string
+		expectedResult string
+	}
+
+	testCases := []testCase{
+		{name: "test 1", repoInfo: "Some string here", expectedResult: ""},
+		{name: "test 2", repoInfo: "Another string here", expectedResult: ""},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result := generateSha(tc.repoInfo)
+			assert.Equal(t, tc.expectedResult, result)
+		})
+	}
+
+}
+
 //(t *testing.T) {

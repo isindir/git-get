@@ -114,8 +114,8 @@ func Test_generateSha(t *testing.T) {
 	}
 
 	testCases := []testCase{
-		{name: "test 1", repoInfo: "Some string here", expectedResult: ""},
-		{name: "test 2", repoInfo: "Another string here", expectedResult: ""},
+		{name: "test 1", repoInfo: "Some string here", expectedResult: "21e5963"},
+		{name: "test 2", repoInfo: "Another string here", expectedResult: "04d5c8f"},
 	}
 
 	for _, tc := range testCases {
@@ -124,7 +124,6 @@ func Test_generateSha(t *testing.T) {
 			assert.Equal(t, tc.expectedResult, result)
 		})
 	}
-
 }
 
 //(t *testing.T) {

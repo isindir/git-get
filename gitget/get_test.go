@@ -17,7 +17,7 @@ var repoUrls = map[string]string{
 	"https://gitlab.com/devops/deploy/deployment-jobs.git": "deployment-jobs",
 }
 
-func TestSetDefaultRef(t *testing.T) {
+func Test_SetDefaultRef(t *testing.T) {
 	repo := Repo{}
 
 	// Test setting to default if not specified
@@ -30,7 +30,7 @@ func TestSetDefaultRef(t *testing.T) {
 	assert.Equal(t, "trunk", repo.Ref)
 }
 
-func TestGetRepoLocalName(t *testing.T) {
+func Test_GetRepoLocalName(t *testing.T) {
 
 	// Test extracting altname from git repo name, if altname is not specified
 	var altname string
@@ -47,7 +47,7 @@ func TestGetRepoLocalName(t *testing.T) {
 	assert.Equal(t, "abc", altname)
 }
 
-func TestSetRepoLocalName(t *testing.T) {
+func Test_SetRepoLocalName(t *testing.T) {
 
 	for repoURL, expectedAltName := range repoUrls {
 		repo := Repo{}
@@ -62,7 +62,7 @@ func TestSetRepoLocalName(t *testing.T) {
 	assert.Equal(t, "abc", repo.AltName)
 }
 
-func TestSetSha(t *testing.T) {
+func Test_SetSha(t *testing.T) {
 	repo := Repo{}
 	repo.URL = "git@github.com:isindir/git-get.git"
 	repo.Ref = "master"
@@ -72,7 +72,17 @@ func TestSetSha(t *testing.T) {
 	assert.Equal(t, "28f4e2d", repo.sha)
 }
 
-func TestSetRepoFullPath(t *testing.T) {
+func Test_PathExists(t *testing.T) {
+	// Test Happy path
+	res, _ := PathExists(".")
+	assert.True(t, res)
+
+	// Test path not found
+	res, _ = PathExists("NotExpectedToFindMe")
+	assert.False(t, res)
+}
+
+func Test_SetRepoFullPath(t *testing.T) {
 	repo := Repo{
 		Path:    "qqq",
 		AltName: "abc",
@@ -83,17 +93,7 @@ func TestSetRepoFullPath(t *testing.T) {
 	assert.Equal(t, expectedFullPath, repo.fullPath)
 }
 
-func TestPathExists(t *testing.T) {
-	// Test Happy path
-	res, _ := PathExists(".")
-	assert.True(t, res)
-
-	// Test path not found
-	res, _ = PathExists("NotExpectedToFindMe")
-	assert.False(t, res)
-}
-
-func TestRepoPathExists(t *testing.T) {
+func Test_RepoPathExists(t *testing.T) {
 	// Test path exists
 	repo := Repo{
 		fullPath: ".",
@@ -122,6 +122,29 @@ func Test_generateSha(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			result := generateSha(tc.repoInfo)
 			assert.Equal(t, tc.expectedResult, result)
+		})
+	}
+}
+
+func Test_SetMirrorURL(t *testing.T) {
+	type testCase struct {
+		name           string
+		repo           Repo
+		expectedResult string
+		mirrorRootURL  string
+	}
+
+	testCases := []testCase{
+		{name: "test repo abc", expectedResult: "abc/abc.git", repo: Repo{AltName: "abc"}, mirrorRootURL: "abc"},
+		{name: "test repo qqq", expectedResult: "abc/qqq/cde.git", repo: Repo{AltName: "cde"}, mirrorRootURL: "abc/qqq"},
+		{name: "test repo http://qqq", expectedResult: "http://qqq/cde.git", repo: Repo{AltName: "cde"}, mirrorRootURL: "http://qqq"},
+		{name: "test repo git@qqq", expectedResult: "git@qqq/cde.git", repo: Repo{AltName: "cde"}, mirrorRootURL: "git@qqq"},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			tc.repo.SetMirrorURL(tc.mirrorRootURL)
+			assert.Equal(t, tc.expectedResult, tc.repo.mirrorURL)
 		})
 	}
 }

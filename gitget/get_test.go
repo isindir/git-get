@@ -149,4 +149,16 @@ func Test_SetMirrorURL(t *testing.T) {
 	}
 }
 
+/*
+func Test_SetMirrorURL1(t *testing.T) {
+	type testCase struct {
+		name           string
+		repo           Repo
+		expectedResult string
+		mirrorRootURL  string
+	}
+}
+*/
+ */
+
 //(t *testing.T) {

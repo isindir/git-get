@@ -33,29 +33,84 @@ import (
 	gitlab "github.com/xanzy/go-gitlab"
 )
 
-func gitlabAuth(repositorySha string, baseUrl string) *gitlab.Client {
-	token, tokenFound := os.LookupEnv("GITLAB_TOKEN")
+type GitGetGitlab struct {
+	token  string
+	client *gitlab.Client
+}
+
+type GitGetGitlabI interface {
+	Init() bool
+
+	gitlabAuth(repositorySha string, baseUrl string) bool
+	ProjectExists(repositorySha string, baseUrl string, projectName string) bool
+	GetProjectNamespace(repositorySha string, baseUrl string, projectNameFullPath string) (*gitlab.Namespace, string)
+	getGroupID(repoSha string, git *gitlab.Client, groupName string) (int, string, error)
+
+	CreateProject(
+		repositorySha string,
+		baseUrl string,
+		projectName string,
+		namespaceID int,
+		mirrorVisibilityMode string,
+		sourceURL string,
+	) *gitlab.Project
+
+	processSubgroups(
+		repoSha string,
+		git *gitlab.Client,
+		groupID int,
+		groupName string,
+		glRepoList []*gitlab.Project,
+		gitlabOwned bool,
+		gitlabVisibility, gitlabMinAccessLevel string,
+	) []*gitlab.Project
+
+	appendGroupsProjects(
+		repoSha string,
+		git *gitlab.Client,
+		groupID int,
+		groupName string,
+		glRepoList []*gitlab.Project,
+		gitlabOwned bool,
+		gitlabVisibility string,
+	) []*gitlab.Project
+
+	FetchOwnerRepos(
+		repositorySha, baseURL, groupName string,
+		gitlabOwned bool,
+		gitlabVisibility, gitlabMinAccessLevel string,
+	) []*gitlab.Project
+}
+
+func (gitProvider *GitGetGitlab) Init() bool {
+	var tokenFound bool
+	gitProvider.token, tokenFound = os.LookupEnv("GITLAB_TOKEN")
 	if !tokenFound {
-		log.Fatalf("%s: Error - environment variable GITLAB_TOKEN not found", repositorySha)
+		log.Fatal("Error - environment variable GITLAB_TOKEN not found")
 		os.Exit(1)
 	}
 
+	return tokenFound
+}
+
+func (gitProvider *GitGetGitlab) auth(repositorySha string, baseUrl string) bool {
 	clientOptions := gitlab.WithBaseURL("https://" + baseUrl)
-	git, err := gitlab.NewClient(token, clientOptions)
+	var err error
+	gitProvider.client, err = gitlab.NewClient(gitProvider.token, clientOptions)
 	if err != nil {
 		log.Fatalf("%s: Error - while trying to authenticate to Gitlab: %s", repositorySha, err)
 		os.Exit(1)
 	}
 
-	return git
+	return true
 }
 
 // ProjectExists checks if project exists and returns boolean if API call is successful
-func ProjectExists(repositorySha string, baseUrl string, projectName string) bool {
+func (gitProvider *GitGetGitlab) ProjectExists(repositorySha string, baseUrl string, projectName string) bool {
 	log.Debugf("%s: Checking repository '%s' '%s' existence", repositorySha, baseUrl, projectName)
-	git := gitlabAuth(repositorySha, baseUrl)
+	gitProvider.auth(repositorySha, baseUrl)
 
-	prj, _, err := git.Projects.GetProject(projectName, nil, nil)
+	prj, _, err := gitProvider.client.Projects.GetProject(projectName, nil, nil)
 
 	log.Debugf("%s: project: '%+v'", repositorySha, prj)
 
@@ -67,9 +122,9 @@ func ProjectExists(repositorySha string, baseUrl string, projectName string) boo
 }
 
 // GetProjectNamespace - return Project Namespace and namespace full path
-func GetProjectNamespace(repositorySha string, baseUrl string, projectNameFullPath string) (*gitlab.Namespace, string) {
+func (gitProvider *GitGetGitlab) GetProjectNamespace(repositorySha string, baseUrl string, projectNameFullPath string) (*gitlab.Namespace, string) {
 	log.Debugf("%s: Getting Project FullPath Namespace '%s'", repositorySha, projectNameFullPath)
-	git := gitlabAuth(repositorySha, baseUrl)
+	gitProvider.auth(repositorySha, baseUrl)
 
 	pathElements := strings.Split(projectNameFullPath, "/")
 	// Remove short project name from the path elements list
@@ -78,7 +133,7 @@ func GetProjectNamespace(repositorySha string, baseUrl string, projectNameFullPa
 	}
 	namespaceFullPath := strings.Join(pathElements, "/")
 
-	namespaceObject, _, err := git.Namespaces.GetNamespace(namespaceFullPath, nil, nil)
+	namespaceObject, _, err := gitProvider.client.Namespaces.GetNamespace(namespaceFullPath, nil, nil)
 
 	log.Debugf(
 		"%s: Getting namespace '%s': resulting namespace object: '%+v'",
@@ -92,7 +147,7 @@ func GetProjectNamespace(repositorySha string, baseUrl string, projectNameFullPa
 }
 
 // CreateProject - Create new code repository
-func CreateProject(
+func (gitProvider *GitGetGitlab) CreateProject(
 	repositorySha string,
 	baseUrl string,
 	projectName string,
@@ -100,7 +155,7 @@ func CreateProject(
 	mirrorVisibilityMode string,
 	sourceURL string,
 ) *gitlab.Project {
-	git := gitlabAuth(repositorySha, baseUrl)
+	gitProvider.auth(repositorySha, baseUrl)
 
 	p := &gitlab.CreateProjectOptions{
 		Name:                 gitlab.String(projectName),
@@ -112,7 +167,7 @@ func CreateProject(
 		p.NamespaceID = gitlab.Int(namespaceID)
 	}
 
-	project, _, err := git.Projects.CreateProject(p)
+	project, _, err := gitProvider.client.Projects.CreateProject(p)
 	if err != nil {
 		log.Fatalf(
 			"%s: Error - while trying to create gitlab project '%s': '%s'",
@@ -123,7 +178,7 @@ func CreateProject(
 	return project
 }
 
-func getGroupID(repoSha string, git *gitlab.Client, groupName string) (int, string, error) {
+func (gitProvider *GitGetGitlab) getGroupID(repoSha string, git *gitlab.Client, groupName string) (int, string, error) {
 	// Fetch group ID needed for other operations
 	_, shortName := filepath.Split(groupName)
 	//escapedGroupName := url.QueryEscape(groupName)
@@ -146,7 +201,7 @@ func getGroupID(repoSha string, git *gitlab.Client, groupName string) (int, stri
 	return 0, "", fmt.Errorf("%s: Group with name '%s' not found", repoSha, groupName)
 }
 
-func processSubgroups(
+func (gitProvider *GitGetGitlab) processSubgroups(
 	repoSha string,
 	git *gitlab.Client,
 	groupID int,
@@ -228,7 +283,7 @@ func processSubgroups(
 			"%s: Recursive getRepositories call for subgroup '%d:%s'",
 			repoSha, subGroups[currentGroup].ID, subGroups[currentGroup].FullName)
 
-		glRepoList = getRepositories(
+		glRepoList = gitProvider.getRepositories(
 			repoSha,
 			git,
 			subGroups[currentGroup].ID,
@@ -243,7 +298,7 @@ func processSubgroups(
 	return glRepoList
 }
 
-func appendGroupsProjects(
+func (gitProvider *GitGetGitlab) appendGroupsProjects(
 	repoSha string,
 	git *gitlab.Client,
 	groupID int,
@@ -316,7 +371,7 @@ func appendGroupsProjects(
 }
 
 // Recursive function via processSubgroups
-func getRepositories(
+func (gitProvider *GitGetGitlab) getRepositories(
 	repoSha string,
 	git *gitlab.Client,
 	groupID int,
@@ -326,37 +381,45 @@ func getRepositories(
 	gitlabVisibility, gitlabMinAccessLevel string,
 ) []*gitlab.Project {
 	log.Debugf("%s: Ready to start processing subgroups for '%d:%s'", repoSha, groupID, groupName)
-	glRepoList = processSubgroups(
+	glRepoList = gitProvider.processSubgroups(
 		repoSha, git, groupID, groupName, glRepoList, gitlabOwned, gitlabVisibility, gitlabMinAccessLevel)
 
 	log.Debugf("%s: Ready to start processing projects for '%d:%s'", repoSha, groupID, groupName)
-	glRepoList = appendGroupsProjects(repoSha, git, groupID, groupName, glRepoList, gitlabOwned, gitlabVisibility)
+	glRepoList = gitProvider.appendGroupsProjects(
+		repoSha, git, groupID, groupName, glRepoList, gitlabOwned, gitlabVisibility)
 
 	return glRepoList
 }
 
 // FetchOwnerRepos - fetches all repositories for the specified gitlab path
-func FetchOwnerRepos(
-	repoSha, baseURL, groupName string,
+func (gitProvider *GitGetGitlab) FetchOwnerRepos(
+	repositorySha, baseURL, groupName string,
 	gitlabOwned bool,
 	gitlabVisibility, gitlabMinAccessLevel string,
 ) []*gitlab.Project {
-	git := gitlabAuth(repoSha, baseURL)
+	gitProvider.auth(repositorySha, baseURL)
 	var glRepoList []*gitlab.Project
 
-	log.Debugf("%s: Get groupID for '%s'", repoSha, groupName)
-	groupID, fullGroupName, err := getGroupID(repoSha, git, groupName)
+	log.Debugf("%s: Get groupID for '%s'", repositorySha, groupName)
+	groupID, fullGroupName, err := gitProvider.getGroupID(repositorySha, gitProvider.client, groupName)
 	if err != nil {
 		log.Errorf(
 			"%s: Error while trying to find group '%s': %s",
-			repoSha, groupName, err,
+			repositorySha, groupName, err,
 		)
 		return glRepoList
 	}
-	log.Debugf("%s: GroupID for '%s' is '%d'", repoSha, fullGroupName, groupID)
+	log.Debugf("%s: GroupID for '%s' is '%d'", repositorySha, fullGroupName, groupID)
 
-	glRepoList = getRepositories(
-		repoSha, git, groupID, fullGroupName, glRepoList, gitlabOwned, gitlabVisibility, gitlabMinAccessLevel,
+	glRepoList = gitProvider.getRepositories(
+		repositorySha,
+		gitProvider.client,
+		groupID,
+		fullGroupName,
+		glRepoList,
+		gitlabOwned,
+		gitlabVisibility,
+		gitlabMinAccessLevel,
 	)
 
 	return glRepoList

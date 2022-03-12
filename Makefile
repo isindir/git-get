@@ -34,7 +34,7 @@ run: ## Runs main help
 test: ## Placeholder to run unit tests
 	@echo "Running unit tests"
 	@mkdir -p bin
-	$(GO) test -cover -coverprofile=bin/c.out $$( go list ./... | egrep -v 'mocks|qqq|vendor' )
+	$(GO) test -cover -coverprofile=bin/c.out $$( go list ./... | egrep -v 'mocks|qqq|vendor|exec|cmd' )
 	$(GO) tool cover -html=bin/c.out -o bin/coverage.html
 	@echo
 

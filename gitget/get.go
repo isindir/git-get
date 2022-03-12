@@ -384,6 +384,7 @@ func (repo *Repo) GetCurrentBranch() string {
 	_, err := (*repo.executor).ExecGitCommand([]string{"rev-parse", "--abbrev-ref", "HEAD"}, &outb, &errb, repo.fullPath)
 	if err != nil {
 		log.Errorf("%s: Error when getting branch %v", repo.sha, err)
+		return ""
 	}
 	return strings.TrimSpace(outb.String())
 }

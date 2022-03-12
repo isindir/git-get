@@ -68,12 +68,12 @@ func Test_SetRepoLocalName(t *testing.T) {
 
 func Test_SetSha(t *testing.T) {
 	repo := Repo{}
-	repo.URL = "git@github.com:isindir/git-get.git"
+	repo.URL = "git@github.com:johndoe/git-get.git"
 	repo.Ref = "master"
-	repo.fullPath = "/Users/erikszelenka/workspace/eriks/git-get/git-get"
+	repo.fullPath = "/Users/johndoe/workspace/john/git-get/git-get"
 
 	repo.SetSha()
-	assert.Equal(t, "28f4e2d", repo.sha)
+	assert.Equal(t, "8955354", repo.sha)
 }
 
 func Test_PathExists(t *testing.T) {
@@ -163,7 +163,7 @@ func Test_Repo_IsRefTag(t *testing.T) {
 
 	testCases := []testCase{
 		{name: "test 1", expectedResult: true, repo: Repo{Ref: "abc", fullPath: "cde_p"}, returnError: nil},
-		{name: "test 2", expectedResult: false, repo: Repo{Ref: "cde", fullPath: "cde_a"}, returnError: fmt.Errorf("Test Error")},
+		{name: "test 2", expectedResult: false, repo: Repo{Ref: "cde", fullPath: "cde_a"}, returnError: fmt.Errorf("test error")},
 	}
 
 	for _, tc := range testCases {
@@ -195,7 +195,7 @@ func Test_Repo_IsRefBranch(t *testing.T) {
 
 	testCases := []testCase{
 		{name: "test 1", expectedResult: true, repo: Repo{Ref: "abc", fullPath: "cde_p"}, returnError: nil},
-		{name: "test 2", expectedResult: false, repo: Repo{Ref: "cde", fullPath: "cde_a"}, returnError: fmt.Errorf("Test Error")},
+		{name: "test 2", expectedResult: false, repo: Repo{Ref: "cde", fullPath: "cde_a"}, returnError: fmt.Errorf("test error")},
 	}
 
 	for _, tc := range testCases {
@@ -228,7 +228,7 @@ func Test_Repo_GitStashPop(t *testing.T) {
 
 	testCases := []testCase{
 		{name: "test 1", expectedResult: true, repo: Repo{}, returnError: nil},
-		{name: "test 2", expectedResult: false, repo: Repo{}, returnError: fmt.Errorf("Test Error")},
+		{name: "test 2", expectedResult: false, repo: Repo{}, returnError: fmt.Errorf("test error")},
 	}
 
 	for _, tc := range testCases {
@@ -262,7 +262,7 @@ func Test_Repo_GitStashSave(t *testing.T) {
 
 	testCases := []testCase{
 		{name: "test 1", expectedResult: true, repo: Repo{}, returnError: nil},
-		{name: "test 2", expectedResult: false, repo: Repo{}, returnError: fmt.Errorf("Test Error")},
+		{name: "test 2", expectedResult: false, repo: Repo{}, returnError: fmt.Errorf("test error")},
 	}
 
 	for _, tc := range testCases {
@@ -297,7 +297,7 @@ func Test_Repo_CloneMirror(t *testing.T) {
 
 	testCases := []testCase{
 		{name: "test 1", expectedResult: true, repo: Repo{URL: "cde", fullPath: "cde_a"}, returnError: nil},
-		{name: "test 2", expectedResult: false, repo: Repo{URL: "cde", fullPath: "cde_a"}, returnError: fmt.Errorf("Test Error")},
+		{name: "test 2", expectedResult: false, repo: Repo{URL: "cde", fullPath: "cde_a"}, returnError: fmt.Errorf("test error")},
 	}
 
 	for _, tc := range testCases {
@@ -316,6 +316,40 @@ func Test_Repo_CloneMirror(t *testing.T) {
 			tc.repo.SetShellRunner(mockGitExec)
 
 			result := tc.repo.CloneMirror()
+			assert.Equal(t, tc.expectedResult, result)
+		})
+	}
+}
+func Test_Repo_GetCurrentBranch(t *testing.T) {
+	type testCase struct {
+		name           string
+		repo           Repo
+		expectedResult string
+		returnError    error
+	}
+
+	testCases := []testCase{
+		// Have not found a way to mutate `outb` at mock call invocation time to validate against `expectedResult`
+		{name: "test 1", expectedResult: "", repo: Repo{fullPath: "cde_a"}, returnError: nil},
+		{name: "test 2", expectedResult: "", repo: Repo{fullPath: "cde_a"}, returnError: fmt.Errorf("test error")},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			mockGitExec := new(mocks.ShellRunnerI)
+			exe := &exec.Cmd{}
+			var outb, errb bytes.Buffer
+
+			mockGitExec.On(
+				"ExecGitCommand",
+				[]string{"rev-parse", "--abbrev-ref", "HEAD"},
+				&outb,
+				&errb,
+				tc.repo.fullPath).Return(exe, tc.returnError)
+
+			tc.repo.SetShellRunner(mockGitExec)
+
+			result := tc.repo.GetCurrentBranch()
 			assert.Equal(t, tc.expectedResult, result)
 		})
 	}

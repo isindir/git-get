@@ -2,4 +2,6 @@
 # https://golang.org/dl/
 golang 1.17.8
 # https://github.com/goreleaser/goreleaser/releases
-goreleaser 1.6.0
+goreleaser 1.6.3
+# https://github.com/vektra/mockery/releases
+mockery 2.10.0

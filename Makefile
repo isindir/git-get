@@ -34,7 +34,7 @@ run: ## Runs main help
 test: ## Placeholder to run unit tests
 	@echo "Running unit tests"
 	@mkdir -p bin
-	$(GO) test -cover -coverprofile=bin/c.out ./...
+	$(GO) test -cover -coverprofile=bin/c.out $$( go list ./... | egrep -v 'mocks|qqq|vendor|exec|cmd' )
 	$(GO) tool cover -html=bin/c.out -o bin/coverage.html
 	@echo
 
@@ -52,8 +52,14 @@ fmt: ## Run go fmt against code.
 vet: ## Run go vet against code.
 	$(GO) vet ./...
 
+.PHONY: mockery
+mockery: ## Regenerate mock files
+	for i in exec gitlab; do \
+	(cd $$i; rm -fr mocks; mockery --all) ;\
+	done
+
 .PHONY: mod
-mod: ## Run go mod tidy/vendor
+mod: mockery ## Run go mod tidy/vendor
 	$(GO) mod tidy
 	$(GO) mod vendor
 

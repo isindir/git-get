@@ -30,7 +30,6 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"path"
 	"path/filepath"
 	"regexp"
@@ -45,11 +44,10 @@ import (
 	"gopkg.in/yaml.v2"
 
 	"github.com/isindir/git-get/bitbucket"
+	"github.com/isindir/git-get/exec"
 	"github.com/isindir/git-get/github"
 	"github.com/isindir/git-get/gitlab"
 )
-
-const gitCmd = "git"
 
 var stayOnRef bool
 var defaultMainBranch = "master"
@@ -58,6 +56,7 @@ var mirrorVisibilityMode = "private"
 var bitbucketMirrorProject = ""
 var colorHighlight *color.Color
 var colorRef *color.Color
+var shellRunner = new(exec.ShellRunner)
 
 // ConfigGenParamsStruct - data structure to store parameters passed via cli flags
 type ConfigGenParamsStruct struct {
@@ -66,11 +65,11 @@ type ConfigGenParamsStruct struct {
 	GitlabVisibility     string
 	GitlabMinAccessLevel string
 
-	// Girhub specific vars
+	// GitHub specific vars
 	GithubVisibility  string
 	GithubAffiliation string
 
-	// Bitbicket specific vars
+	// Bitbucket specific vars
 	/*
 		MAYBE: implement for bitbucket to allow subset of repositories
 		BitbucketDivision string
@@ -87,7 +86,7 @@ type bitbucketLinks struct {
 type Repo struct {
 	URL      string   `yaml:"url"`                // git url of the remote repository
 	Path     string   `yaml:"path,omitempty"`     // to clone repository to
-	AltName  string   `yaml:"altname,omitempty"`  // when clone, repository will have different name from remote
+	AltName  string   `yaml:"altname,omitempty"`  // when cloned, repository will have different name from remote
 	Ref      string   `yaml:"ref,omitempty"`      // branch to clone (normally trunk branch name, but git sha or git tag can be also specified)
 	Symlinks []string `yaml:"symlinks,omitempty"` // paths where to create symlinks to the repository clone
 	// helper fields, not supposed to be written or read in Gitfile:
@@ -95,8 +94,10 @@ type Repo struct {
 	sha       string     `yaml:"sha,omitempty"`
 	mirrorURL string     `yaml:"mirror_url,omitempty"`
 	status    RepoStatus // keep track of the repository status after operation to provide summary
+	executor  *exec.ShellRunnerI
 }
 
+// RepoList is a slice of Repo structs
 type RepoList []Repo
 
 // RepoStatus - data structure to track repository status
@@ -114,13 +115,12 @@ type RepoI interface {
 	CreateSymlink(symlink string)
 	ChoosePathPrefix(pathPrefix string) string
 	EnsurePathExists()
-	ExecGitCommand(args []string, stdoutb *bytes.Buffer, erroutb *bytes.Buffer, dir string) (cmd *exec.Cmd, err error)
 	GetCurrentBranch() string
 	GetRepoLocalName() string
 	GitCheckout(branch string)
 	GitPull()
-	GitStashPop()
-	GitStashSave()
+	GitStashPop() bool
+	GitStashSave() bool
 	IsClean() bool
 	IsCurrentBranchRef() bool
 	IsRefBranch() bool
@@ -192,6 +192,7 @@ func (repo *Repo) EnsurePathExists(pathPrefix string) {
 	}
 }
 
+// SetRepoLocalName sets struct AltName to short name obtained from repository uri
 func (repo *Repo) SetRepoLocalName() {
 	repo.AltName = repo.GetRepoLocalName()
 }
@@ -201,15 +202,24 @@ func (repo *Repo) SetSha() {
 	repo.sha = generateSha(fmt.Sprintf("%s (%s) %s", repo.URL, repo.Ref, repo.fullPath))
 }
 
+// generateSha returns sha of the string passed in or "unknown" if error occurs
 func generateSha(input string) string {
 	h := sha1.New()
-	io.WriteString(h, input)
+	_, err := io.WriteString(h, input)
+	if err != nil {
+		return "unknown"
+	}
 	return fmt.Sprintf("%x", h.Sum(nil))[0:7]
+}
+
+func (repo *Repo) SetShellRunner(exe exec.ShellRunnerI) {
+	repo.executor = &exe
 }
 
 // PrepareForGet performs checks for repository as well as constructs
 // extra information and sets repository data structure values.
 func (repo *Repo) PrepareForGet() {
+	repo.SetShellRunner(shellRunner)
 	repo.EnsurePathExists("")
 	repo.SetDefaultRef()
 	repo.SetRepoLocalName()
@@ -272,7 +282,7 @@ func (repo *Repo) RepoPathExists() bool {
 func (repo *Repo) CloneMirror() bool {
 	log.Infof("%s: Clone repository '%s' for mirror", repo.sha, repo.URL)
 	var serr bytes.Buffer
-	_, err := repo.ExecGitCommand(
+	_, err := (*repo.executor).ExecGitCommand(
 		[]string{"clone", "--mirror", repo.URL, repo.fullPath},
 		nil,
 		&serr,
@@ -289,7 +299,7 @@ func (repo *Repo) CloneMirror() bool {
 func (repo *Repo) PushMirror() bool {
 	log.Infof("%s: Push repository '%s' as a mirror '%s'", repo.sha, repo.URL, repo.mirrorURL)
 	var serr bytes.Buffer
-	_, err := repo.ExecGitCommand([]string{"push", "--mirror", repo.mirrorURL}, nil, &serr, repo.fullPath)
+	_, err := (*repo.executor).ExecGitCommand([]string{"push", "--mirror", repo.mirrorURL}, nil, &serr, repo.fullPath)
 	if err != nil {
 		log.Errorf("%s: %v %v", repo.sha, err, serr.String())
 		return false
@@ -301,7 +311,7 @@ func (repo *Repo) PushMirror() bool {
 func (repo *Repo) Clone() bool {
 	log.Infof("%s: Clone repository '%s'", repo.sha, repo.URL)
 	var serr bytes.Buffer
-	_, err := repo.ExecGitCommand(
+	_, err := (*repo.executor).ExecGitCommand(
 		[]string{"clone", "--branch", repo.Ref, repo.URL, repo.fullPath},
 		nil,
 		&serr,
@@ -319,7 +329,7 @@ func (repo *Repo) Clone() bool {
 func (repo *Repo) ShallowClone() bool {
 	log.Infof("%s: Clone repository '%s'", repo.sha, repo.URL)
 	var serr bytes.Buffer
-	_, err := repo.ExecGitCommand(
+	_, err := (*repo.executor).ExecGitCommand(
 		[]string{"clone", "--depth", "1", "--branch", repo.Ref, repo.URL, repo.fullPath},
 		nil,
 		&serr,
@@ -349,11 +359,11 @@ func (repo *Repo) RemoveTargetDir(dotGit bool) {
 
 func (repo *Repo) IsClean() bool {
 	res := true
-	_, err := repo.ExecGitCommand([]string{"diff", "--quiet"}, nil, nil, repo.fullPath)
+	_, err := (*repo.executor).ExecGitCommand([]string{"diff", "--quiet"}, nil, nil, repo.fullPath)
 	if err != nil {
 		res = false
 	}
-	_, err = repo.ExecGitCommand([]string{"diff", "--staged", "--quiet"}, nil, nil, repo.fullPath)
+	_, err = (*repo.executor).ExecGitCommand([]string{"diff", "--staged", "--quiet"}, nil, nil, repo.fullPath)
 	if err != nil {
 		res = false
 	}
@@ -362,94 +372,81 @@ func (repo *Repo) IsClean() bool {
 
 func (repo *Repo) IsCurrentBranchRef() bool {
 	var outb, errb bytes.Buffer
-	repo.ExecGitCommand([]string{"rev-parse", "--abbrev-ref", "HEAD"}, &outb, &errb, repo.fullPath)
+	_, err := (*repo.executor).ExecGitCommand([]string{"rev-parse", "--abbrev-ref", "HEAD"}, &outb, &errb, repo.fullPath)
+	if err != nil {
+		log.Errorf("%s: Error when checking branch %v", repo.sha, err)
+	}
 	return (strings.TrimSpace(outb.String()) == repo.Ref)
 }
 
 func (repo *Repo) GetCurrentBranch() string {
 	var outb, errb bytes.Buffer
-	repo.ExecGitCommand([]string{"rev-parse", "--abbrev-ref", "HEAD"}, &outb, &errb, repo.fullPath)
+	_, err := (*repo.executor).ExecGitCommand([]string{"rev-parse", "--abbrev-ref", "HEAD"}, &outb, &errb, repo.fullPath)
+	if err != nil {
+		log.Errorf("%s: Error when getting branch %v", repo.sha, err)
+		return ""
+	}
 	return strings.TrimSpace(outb.String())
 }
 
-func (repo *Repo) ExecGitCommand(
-	args []string,
-	stdoutb *bytes.Buffer,
-	erroutb *bytes.Buffer,
-	dir string,
-) (cmd *exec.Cmd, err error) {
-	cmd = exec.Command(gitCmd, args...)
-
-	if stdoutb != nil {
-		cmd.Stdout = stdoutb
-	}
-	if erroutb != nil {
-		cmd.Stderr = erroutb
-	}
-
-	if dir != "" {
-		cmd.Dir = dir
-	}
-
-	err = cmd.Run()
-	return cmd, err
-}
-
-func (repo *Repo) GitStashSave() {
+func (repo *Repo) GitStashSave() bool {
 	log.Infof("%s: Stash unsaved changes", repo.sha)
 	var serr bytes.Buffer
-	_, err := repo.ExecGitCommand([]string{"stash", "save"}, nil, &serr, repo.fullPath)
+	_, err := (*repo.executor).ExecGitCommand([]string{"stash", "save"}, nil, &serr, repo.fullPath)
 	if err != nil {
 		repo.status.Error = true
 		log.Warnf("%s: %v: %v", repo.sha, err, serr.String())
+		return false
 	}
+	return true
 }
 
-func (repo *Repo) GitStashPop() {
+func (repo *Repo) GitStashPop() bool {
 	log.Infof("%s: Restore stashed changes", repo.sha)
 	var serr bytes.Buffer
-	_, err := repo.ExecGitCommand([]string{"stash", "pop"}, nil, &serr, repo.fullPath)
+	_, err := (*repo.executor).ExecGitCommand([]string{"stash", "pop"}, nil, &serr, repo.fullPath)
 	if err != nil {
 		repo.status.Error = true
 		log.Warnf("%s: %v: %v", repo.sha, err, serr.String())
+		return false
 	}
+	return true
 }
 
+// IsRefBranch returns true if
 func (repo *Repo) IsRefBranch() bool {
-	res := true
 	fullRef := fmt.Sprintf("refs/heads/%s", repo.Ref)
-	_, err := repo.ExecGitCommand(
+	_, err := (*repo.executor).ExecGitCommand(
 		[]string{"show-ref", "--quiet", "--verify", fullRef},
 		nil,
 		nil,
 		repo.fullPath,
 	)
 	if err != nil {
-		res = false
+		return false
 	}
-	return res
+	return true
 }
 
 func (repo *Repo) IsRefTag() bool {
-	res := true
 	fullRef := fmt.Sprintf("refs/tags/%s", repo.Ref)
-	_, err := repo.ExecGitCommand(
+	_, err := (*repo.executor).ExecGitCommand(
 		[]string{"show-ref", "--quiet", "--verify", fullRef},
 		nil,
 		nil,
 		repo.fullPath,
 	)
 	if err != nil {
-		res = false
+		return false
 	}
-	return res
+	return true
 }
 
 func (repo *Repo) GitPull() {
 	if repo.IsRefBranch() {
 		log.Infof("%s: Pulling upstream changes", repo.sha)
 		var serr bytes.Buffer
-		_, err := repo.ExecGitCommand([]string{"pull", "-f"}, nil, &serr, repo.fullPath)
+		_, err := (*repo.executor).ExecGitCommand([]string{"pull", "-f"}, nil, &serr, repo.fullPath)
 		if err != nil {
 			repo.status.Error = true
 			log.Errorf("%s: %v: %v", repo.sha, err, serr.String())
@@ -480,7 +477,7 @@ func (repo *Repo) ProcessRepoBasedOnCleaness() {
 func (repo *Repo) GitCheckout(branch string) {
 	log.Infof("%s: Checkout to '%s' branch in '%s'", repo.sha, colorHighlight.Sprintf(branch), repo.fullPath)
 	var serr bytes.Buffer
-	_, err := repo.ExecGitCommand([]string{"checkout", branch}, nil, &serr, repo.fullPath)
+	_, err := (*repo.executor).ExecGitCommand([]string{"checkout", branch}, nil, &serr, repo.fullPath)
 	if err != nil {
 		repo.status.Error = true
 		log.Warnf("%s: %v: %v", repo.sha, err, serr.String())
@@ -569,12 +566,15 @@ func (repo *Repo) EnsureGitlabMirrorExists() {
 	log.Debugf("%s: For Check: BaseURL: %s projectNameFullPath: %s", repo.sha, baseURL, projectNameFullPath)
 	log.Debugf("%s: For Create: BaseURL: %s projectNameShort: %s", repo.sha, baseURL, projectNameShort)
 	// In gitlab Project is both - repository and directory to aggregate repositories
-	projectFound := gitlab.ProjectExists(repo.sha, baseURL, projectNameFullPath)
+	gitlabObj := gitlab.GitGetGitlab{}
+	gitlabObj.Init()
+
+	projectFound := gitlabObj.ProjectExists(repo.sha, baseURL, projectNameFullPath)
 
 	if !projectFound {
 		log.Debugf("%s: Gitlab project '%s' does not exist", repo.sha, projectNameFullPath)
 		// identify if part `b` is a group ? then need to create project differently - potentially create all subgroups
-		projectNamespace, namespaceFullPath := gitlab.GetProjectNamespace(repo.sha, baseURL, projectNameFullPath)
+		projectNamespace, namespaceFullPath := gitlabObj.GetProjectNamespace(repo.sha, baseURL, projectNameFullPath)
 		log.Debugf("%s: '%s' is '%+v'", repo.sha, projectNameFullPath, projectNamespace)
 		// If project namespace exists and is user - create project for user
 		// Otherwise ensure group with subgroups exists and create project in subgroup
@@ -583,7 +583,7 @@ func (repo *Repo) EnsureGitlabMirrorExists() {
 				log.Debugf(
 					"%s: Creating new gitlab project '%s' on '%s' for user '%s'",
 					repo.sha, projectNameShort, baseURL, projectNamespace.Path)
-				gitlab.CreateProject(
+				gitlabObj.CreateProject(
 					repo.sha,
 					baseURL,
 					projectNameShort,
@@ -595,7 +595,7 @@ func (repo *Repo) EnsureGitlabMirrorExists() {
 				log.Debugf(""+
 					"%s: Creating new gitlab project '%s' on '%s' for namespace '%s'",
 					repo.sha, projectNameShort, baseURL, projectNamespace.Path)
-				gitlab.CreateProject(
+				gitlabObj.CreateProject(
 					repo.sha,
 					baseURL,
 					projectNameShort,
@@ -626,13 +626,14 @@ func DecomposeGitURL(gitURL string) (string, string, string) {
 	urlParts := strings.SplitN(url, "/", 2)
 	baseURL, fullName := urlParts[0], urlParts[1]
 
-	// baseURL and projecName for creating missing repository ( abc.com/b/c/d -> abc.com/b/c , d)
+	// baseURL and project Name for creating missing repository ( abc.com/b/c/d -> abc.com/b/c , d)
 	_, shortName := filepath.Split(url)
 
 	// ( abc.com/b/c/d -> abc.com, b/c/d, d )
 	return baseURL, fullName, shortName
 }
 
+// EnsureGithubMirrorExists - creates mirror repository if it does not exist
 func (repo *Repo) EnsureGithubMirrorExists() {
 	_, projectNameFullPath, _ := DecomposeGitURL(repo.mirrorURL)
 	repoNameParts := strings.SplitN(projectNameFullPath, "/", 2)
@@ -646,6 +647,7 @@ func (repo *Repo) EnsureGithubMirrorExists() {
 	}
 }
 
+// EnsureBitbucketMirrorExists - creates mirror repository if it does not exist
 func (repo *Repo) EnsureBitbucketMirrorExists() {
 	_, fullName, _ := DecomposeGitURL(repo.mirrorURL)
 	repoNameParts := strings.SplitN(fullName, "/", 2)
@@ -738,7 +740,7 @@ func mirrorReposFromConfigInParallel(
 
 	var wait sync.WaitGroup
 
-	// make temp directory - preserve it's name
+	// make temp directory - preserve its name
 	tempDir, err := ioutil.TempDir("", "gitgetmirror")
 	if err != nil {
 		log.Fatalf("Error: %s, while creating temporary directory", err)
@@ -774,22 +776,7 @@ func mirrorReposFromConfigInParallel(
 	wait.Wait()
 }
 
-func processConfig(repoList []Repo) {
-	for _, repository := range repoList {
-		repository.PrepareForGet()
-		if !repository.RepoPathExists() {
-			// Clone
-			log.Debugf("%s: path '%s' missing - cloning", repository.sha, repository.fullPath)
-			repository.Clone()
-		} else {
-			// Refresh
-			log.Debugf("%s: path '%s' exists, will refresh from remote", repository.sha, repository.fullPath)
-			repository.ProcessRepoBasedOnCurrentBranch()
-		}
-		repository.ProcessSymlinks()
-	}
-}
-
+// GetRepositories - gets the list of repositories
 func GetRepositories(
 	cfgFiles []string,
 	ignoreFiles []string,
@@ -978,7 +965,10 @@ func fetchGitlabRepos(
 		"%s: Fetching repositories for '%s' target: '%s' -> '%s' '%s'",
 		repoSha, gitProvider, gitCloudProviderRootURL, baseURL, groupName)
 
-	glRepoList := gitlab.FetchOwnerRepos(
+	gitlabObj := gitlab.GitGetGitlab{}
+	gitlabObj.Init()
+
+	glRepoList := gitlabObj.FetchOwnerRepos(
 		repoSha,
 		baseURL,
 		groupName,

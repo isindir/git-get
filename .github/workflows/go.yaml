@@ -14,7 +14,7 @@ jobs:
     if: github.ref != 'refs/heads/master'
     steps:
 
-    - name: Set up Go 1.17.8
+    - name: Set up Go
       uses: actions/setup-go@v1
       with:
         go-version: 1.17.8
@@ -23,6 +23,7 @@ jobs:
     - name: Install GoReleaser
       uses: goreleaser/goreleaser-action@v2
       with:
+        version: v1.6.3
         install-only: true
 
     - name: Check out code into the Go module directory
@@ -43,7 +44,7 @@ jobs:
     if: github.ref == 'refs/heads/master'
     steps:
 
-    - name: Set up Go 1.17.8
+    - name: Set up Go
       uses: actions/setup-go@v1
       with:
         go-version: 1.17.8
@@ -52,6 +53,7 @@ jobs:
     - name: Install GoReleaser
       uses: goreleaser/goreleaser-action@v2
       with:
+        version: v1.6.3
         install-only: true
 
     - name: Install svu

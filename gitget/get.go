@@ -117,7 +117,7 @@ type RepoI interface {
 	EnsurePathExists()
 	GetCurrentBranch() string
 	GetRepoLocalName() string
-	GitCheckout(branch string)
+	GitCheckout(branch string) bool
 	GitPull()
 	GitStashPop() bool
 	GitStashSave() bool
@@ -127,6 +127,7 @@ type RepoI interface {
 	IsRefTag() bool
 	PathExists(path string) (bool, os.FileInfo)
 	PrepareForGet()
+	PrepareForMirror(pathPrefix string, mirrorRootURL string)
 	ProcessRepoBasedOnCleaness()
 	ProcessRepoBasedOnCurrentBranch()
 	ProcessSymlinks()
@@ -232,6 +233,7 @@ func (repo *Repo) PrepareForGet() {
 
 // PrepareForMirror - set repository structure fields for mirror operation
 func (repo *Repo) PrepareForMirror(pathPrefix string, mirrorRootURL string) {
+	repo.SetShellRunner(shellRunner)
 	repo.SetTempRepoPathForMirror(pathPrefix)
 	repo.SetDefaultRef()
 	repo.SetRepoLocalName()
@@ -358,16 +360,15 @@ func (repo *Repo) RemoveTargetDir(dotGit bool) {
 }
 
 func (repo *Repo) IsClean() bool {
-	res := true
 	_, err := (*repo.executor).ExecGitCommand([]string{"diff", "--quiet"}, nil, nil, repo.fullPath)
 	if err != nil {
-		res = false
+		return false
 	}
 	_, err = (*repo.executor).ExecGitCommand([]string{"diff", "--staged", "--quiet"}, nil, nil, repo.fullPath)
 	if err != nil {
-		res = false
+		return false
 	}
-	return res
+	return true
 }
 
 func (repo *Repo) IsCurrentBranchRef() bool {
@@ -474,17 +475,23 @@ func (repo *Repo) ProcessRepoBasedOnCleaness() {
 	}
 }
 
-func (repo *Repo) GitCheckout(branch string) {
+func (repo *Repo) GitCheckout(branch string) bool {
 	log.Infof("%s: Checkout to '%s' branch in '%s'", repo.sha, colorHighlight.Sprintf(branch), repo.fullPath)
 	var serr bytes.Buffer
+	res := true
+
 	_, err := (*repo.executor).ExecGitCommand([]string{"checkout", branch}, nil, &serr, repo.fullPath)
 	if err != nil {
 		repo.status.Error = true
 		log.Warnf("%s: %v: %v", repo.sha, err, serr.String())
+		res = false
 	}
+
 	if repo.Ref != branch {
 		repo.status.NotOnRefBranch = true
 	}
+
+	return res
 }
 
 func (repo *Repo) ProcessRepoBasedOnCurrentBranch() {

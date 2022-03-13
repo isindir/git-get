@@ -58,6 +58,12 @@ mockery: ## Regenerate mock files
 	(cd $$i; rm -fr mocks; mockery --all) ;\
 	done
 
+.PHONY: clean-mockery
+clean-mockery: ## Clean mock files
+	for i in exec gitlab; do \
+	(cd $$i; rm -fr mocks) ;\
+	done
+
 .PHONY: mod
 mod: mockery ## Run go mod tidy/vendor
 	$(GO) mod tidy
@@ -68,9 +74,6 @@ clean: ## Removes build artifacts from source code
 	@echo "Cleaning"
 	@rm -fr bin
 	@rm -fr vendor
-	for i in exec gitlab; do \
-	(cd $$i; rm -fr mocks) ;\
-	done
 	@echo
 
 .PHONY: update-here

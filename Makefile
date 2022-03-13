@@ -68,6 +68,9 @@ clean: ## Removes build artifacts from source code
 	@echo "Cleaning"
 	@rm -fr bin
 	@rm -fr vendor
+	for i in exec gitlab; do \
+	(cd $$i; rm -fr mocks) ;\
+	done
 	@echo
 
 .PHONY: update-here

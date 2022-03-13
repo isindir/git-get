@@ -185,6 +185,7 @@ func Test_Repo_IsRefTag(t *testing.T) {
 		})
 	}
 }
+
 func Test_Repo_IsRefBranch(t *testing.T) {
 	type testCase struct {
 		name           string
@@ -252,6 +253,7 @@ func Test_Repo_GitStashPop(t *testing.T) {
 		})
 	}
 }
+
 func Test_Repo_GitStashSave(t *testing.T) {
 	type testCase struct {
 		name           string
@@ -320,6 +322,7 @@ func Test_Repo_CloneMirror(t *testing.T) {
 		})
 	}
 }
+
 func Test_Repo_GetCurrentBranch(t *testing.T) {
 	type testCase struct {
 		name           string
@@ -351,6 +354,224 @@ func Test_Repo_GetCurrentBranch(t *testing.T) {
 
 			result := tc.repo.GetCurrentBranch()
 			assert.Equal(t, tc.expectedResult, result)
+		})
+	}
+}
+
+func Test_Repo_IsClean(t *testing.T) {
+	type testCase struct {
+		name           string
+		repo           Repo
+		expectedResult bool
+		err1           error
+		err2           error
+	}
+
+	testCases := []testCase{
+		{name: "test 1: no error", expectedResult: true,
+			repo: Repo{fullPath: "cde_p"}, err1: nil, err2: nil},
+		{name: "test 2: err1 raised", expectedResult: false,
+			repo: Repo{fullPath: "cde_a"}, err1: fmt.Errorf("test error"), err2: nil},
+		{name: "test 3: err2 raised", expectedResult: false,
+			repo: Repo{fullPath: "cde_a"}, err1: nil, err2: fmt.Errorf("test error")},
+		{name: "test 3: err1 and err2 can be raised", expectedResult: false,
+			repo: Repo{fullPath: "cde_a"}, err1: fmt.Errorf("test error"), err2: fmt.Errorf("test error")},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			mockGitExec := new(mocks.ShellRunnerI)
+			exe := &exec.Cmd{}
+
+			mockGitExec.On(
+				"ExecGitCommand",
+				[]string{"diff", "--quiet"},
+				(*bytes.Buffer)(nil),
+				(*bytes.Buffer)(nil),
+				tc.repo.fullPath).Return(exe, tc.err1)
+			mockGitExec.On(
+				"ExecGitCommand",
+				[]string{"diff", "--staged", "--quiet"},
+				(*bytes.Buffer)(nil),
+				(*bytes.Buffer)(nil),
+				tc.repo.fullPath).Return(exe, tc.err2)
+
+			tc.repo.SetShellRunner(mockGitExec)
+
+			result := tc.repo.IsClean()
+			assert.Equal(t, tc.expectedResult, result)
+		})
+	}
+}
+
+func Test_Repo_ShallowClone(t *testing.T) {
+	type testCase struct {
+		name           string
+		repo           Repo
+		expectedResult bool
+		returnError    error
+	}
+
+	testCases := []testCase{
+		{name: "test 1", expectedResult: true, repo: Repo{Ref: "abc", URL: "cde", fullPath: "cde_a"}, returnError: nil},
+		{name: "test 2", expectedResult: false, repo: Repo{Ref: "abc", URL: "cde", fullPath: "cde_a"}, returnError: fmt.Errorf("test error")},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			mockGitExec := new(mocks.ShellRunnerI)
+			exe := &exec.Cmd{}
+			serr := &bytes.Buffer{}
+
+			mockGitExec.On(
+				"ExecGitCommand",
+				[]string{"clone", "--depth", "1", "--branch", tc.repo.Ref, tc.repo.URL, tc.repo.fullPath},
+				(*bytes.Buffer)(nil),
+				serr,
+				"").Return(exe, tc.returnError)
+
+			tc.repo.SetShellRunner(mockGitExec)
+
+			result := tc.repo.ShallowClone()
+			assert.Equal(t, tc.expectedResult, result)
+		})
+	}
+}
+
+func Test_Repo_Clone(t *testing.T) {
+	type testCase struct {
+		name           string
+		repo           Repo
+		expectedResult bool
+		returnError    error
+	}
+
+	testCases := []testCase{
+		{name: "test 1", expectedResult: true, repo: Repo{Ref: "abc", URL: "cde", fullPath: "cde_a"}, returnError: nil},
+		{name: "test 2", expectedResult: false, repo: Repo{Ref: "abc", URL: "cde", fullPath: "cde_a"}, returnError: fmt.Errorf("test error")},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			mockGitExec := new(mocks.ShellRunnerI)
+			exe := &exec.Cmd{}
+			serr := &bytes.Buffer{}
+
+			mockGitExec.On(
+				"ExecGitCommand",
+				[]string{"clone", "--branch", tc.repo.Ref, tc.repo.URL, tc.repo.fullPath},
+				(*bytes.Buffer)(nil),
+				serr,
+				"").Return(exe, tc.returnError)
+
+			tc.repo.SetShellRunner(mockGitExec)
+
+			result := tc.repo.Clone()
+			assert.Equal(t, tc.expectedResult, result)
+		})
+	}
+}
+
+func Test_Repo_PushMirror(t *testing.T) {
+	type testCase struct {
+		name           string
+		repo           Repo
+		expectedResult bool
+		returnError    error
+	}
+
+	testCases := []testCase{
+		{name: "test 1", expectedResult: true, repo: Repo{mirrorURL: "cde"}, returnError: nil},
+		{name: "test 2", expectedResult: false, repo: Repo{mirrorURL: "cde"}, returnError: fmt.Errorf("test error")},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			mockGitExec := new(mocks.ShellRunnerI)
+			exe := &exec.Cmd{}
+			serr := &bytes.Buffer{}
+
+			mockGitExec.On(
+				"ExecGitCommand",
+				[]string{"push", "--mirror", tc.repo.mirrorURL},
+				(*bytes.Buffer)(nil),
+				serr,
+				"").Return(exe, tc.returnError)
+
+			tc.repo.SetShellRunner(mockGitExec)
+
+			result := tc.repo.PushMirror()
+			assert.Equal(t, tc.expectedResult, result)
+		})
+	}
+}
+
+func Test_Repo_GitCheckout(t *testing.T) {
+	type testCase struct {
+		name                   string
+		repo                   Repo
+		branch                 string
+		expectedResult         bool
+		expectedNotOnRefBranch bool
+		returnError            error
+	}
+
+	testCases := []testCase{
+		{
+			name:                   "test 1",
+			expectedResult:         true,
+			expectedNotOnRefBranch: false,
+			branch:                 "develop",
+			repo:                   Repo{sha: "abcabc", Ref: "develop", fullPath: "abc"},
+			returnError:            nil,
+		},
+		{
+			name:                   "test 2",
+			expectedResult:         false,
+			expectedNotOnRefBranch: false,
+			branch:                 "develop",
+			repo:                   Repo{sha: "abcabc", Ref: "develop", fullPath: "abc"},
+			returnError:            fmt.Errorf("test error"),
+		},
+		{
+			name:                   "test 3",
+			expectedResult:         true,
+			expectedNotOnRefBranch: true,
+			branch:                 "master",
+			repo:                   Repo{sha: "abcabc", Ref: "develop", fullPath: "abc"},
+			returnError:            nil,
+		},
+		{
+			name:                   "test 4",
+			expectedResult:         false,
+			expectedNotOnRefBranch: true,
+			branch:                 "master",
+			repo:                   Repo{sha: "abcabc", Ref: "develop", fullPath: "abc"},
+			returnError:            fmt.Errorf("test error"),
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			mockGitExec := new(mocks.ShellRunnerI)
+			exe := &exec.Cmd{}
+			serr := &bytes.Buffer{}
+
+			mockGitExec.On(
+				"ExecGitCommand",
+				[]string{"checkout", tc.branch},
+				(*bytes.Buffer)(nil),
+				serr,
+				tc.repo.fullPath).Return(exe, tc.returnError)
+
+			tc.repo.SetShellRunner(mockGitExec)
+			initColors()
+
+			result := tc.repo.GitCheckout(tc.branch)
+
+			assert.Equal(t, tc.expectedResult, result)
+			assert.Equal(t, !tc.expectedResult, tc.repo.status.Error)
+			assert.Equal(t, tc.expectedNotOnRefBranch, tc.repo.status.NotOnRefBranch)
 		})
 	}
 }

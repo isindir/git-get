@@ -218,7 +218,7 @@ func (gitProvider *GitGetGitlab) processSubgroups(
 		PerPage: 30,
 	}
 
-	subGrpOpt := &gitlab.ListSubgroupsOptions{
+	subGrpOpt := &gitlab.ListSubGroupsOptions{
 		ListOptions:  lstOpts,
 		AllAvailable: gitlab.Bool(true),
 		TopLevelOnly: gitlab.Bool(false),
@@ -251,7 +251,7 @@ func (gitProvider *GitGetGitlab) processSubgroups(
 		log.Debugf(
 			"%s: Fetching group '%d:%s' subgroups - page '%d'",
 			repoSha, groupID, groupName, subGrpOpt.ListOptions.Page)
-		groups, res, err := git.Groups.ListSubgroups(groupID, subGrpOpt, nil)
+		groups, res, err := git.Groups.ListSubGroups(groupID, subGrpOpt, nil)
 		if err != nil {
 			log.Errorf(
 				"%s: Error while trying to get subgroups for '%d:%s': %s",

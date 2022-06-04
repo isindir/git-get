@@ -1,7 +1,7 @@
 # UPDATE_HERE
 # https://golang.org/dl/
-golang 1.17.8
+golang 1.18.3
 # https://github.com/goreleaser/goreleaser/releases
-goreleaser 1.6.3
+goreleaser 1.9.2
 # https://github.com/vektra/mockery/releases
-mockery 2.10.0
+mockery 2.12.3

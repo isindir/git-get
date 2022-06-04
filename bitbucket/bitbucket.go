@@ -151,8 +151,8 @@ func FetchOwnerRepos(repoSha, owner, bitbucketRole string) []bitbucket.Repositor
 
 	if repos != nil && len(repos.Items) > 0 && err == nil {
 		log.Debugf(
-			"%s: Page: %d, Pagelen: %d, MaxDepth: %d, Size: %d",
-			repoSha, repos.Page, repos.Pagelen, repos.MaxDepth, repos.Size)
+			"%s: Page: %d, Pagelen: %d, Size: %d",
+			repoSha, repos.Page, repos.Pagelen, repos.Size)
 		reposToReutrn = repos.Items
 	} else {
 		log.Errorf("%s: Can't fetch repository list for '%s' '%+v'", repoSha, owner, err)

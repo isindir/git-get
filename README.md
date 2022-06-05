@@ -126,7 +126,7 @@ Examples:
 
 git-get config-gen -f Gitfile -p "gitlab" -u "git@gitlab.com:johndoe" -t misc -l debug
 git-get config-gen -f Gitfile -p "gitlab" -u "git@gitlab.com:AcmeOrg" -t misc -l debug
-git-get config-gen -f Gitfile -p "gitlab" -u "git@gitlab.com:AcmeOrg/kube"
+git-get config-gen -f Gitfile -p "gitlab" -u "git@gitlab.com:AcmeOrg/kube" -g "https"
 git-get config-gen -f Gitfile -p "bitbucket" -u "git@bitbucket.com:AcmeOrg" -t AcmeOrg
 git-get config-gen -f Gitfile -p "github" -u "git@github.com:johndoe" -t johndoe -l debug
 git-get config-gen -f Gitfile -p "github" -u "git@github.com:AcmeOrg" -t AcmeOrg -l debug
@@ -136,6 +136,7 @@ Flags:
   -f, --config-file string                          Configuration file (default "~/Gitfile")
   -p, --config-provider string                      Git provider name [gitlab|github|bitbucket] (default "gitlab")
   -u, --config-url string                           Private URL prefix to construct Gitfile from (example: git@github.com:acmeorg), provider specific.
+  -g, --generate-url-of-type string                 Generate git URLs of type [ssh|https] (default "ssh")
       --github-affiliation string                   Github: affiliation - comma-separated list of values.
                                                     Can include: owner, collaborator, or organization_member (default "owner,collaborator,organization_member")
       --github-visibility string                    Github: visibility [all|public|private] (default "all")

@@ -40,6 +40,7 @@ jobs:
 
     - name: Slack Notification
       uses: rtCamp/action-slack-notify@v2
+      if: always()
       env:
         SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
         SLACK_COLOR: ${{ job.status }}

@@ -43,7 +43,7 @@ jobs:
       if: always()
       with:
         status: ${{ job.status }}
-        fields: repo,message,commit,author,action # ,eventName,ref,workflow,job,took
+        fields: repo,message # commit,author,action,eventName,ref,workflow,job,took
       env:
         SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
 

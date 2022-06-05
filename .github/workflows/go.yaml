@@ -92,7 +92,10 @@ jobs:
         HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
 
     - name: Slack Notification
-      uses: rtCamp/action-slack-notify@v2
+      uses: 8398a7/action-slack@v3
+      if: always()
+      with:
+        status: ${{ job.status }}
+        fields: repo,message,commit,author,action # ,eventName,ref,workflow,job,took
       env:
-        SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
-        SLACK_COLOR: ${{ job.status }}
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}

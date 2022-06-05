@@ -4,7 +4,7 @@ GO := GOPROXY=https://proxy.golang.org go
 GOR := goreleaser
 SRC = $(shell find . -type f -name '*.go' -not -path "./vendor/*")
 
-all: qqq clean fmt vet test build
+all: clean fmt vet test build
 
 ##@ General
 

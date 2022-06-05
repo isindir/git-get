@@ -1,18 +1,18 @@
-name: slack-notification
-
-on: [push]
-
-jobs:
-  slackNotification:
-    name: Slack Notification
-    runs-on: ubuntu-latest
-    steps:
-
-    - name: Check out code
-      uses: actions/checkout@v2
-
-    - name: Slack Notification
-      uses: rtCamp/action-slack-notify@v2
-      env:
-        SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
-        SLACK_ICON: https://github.githubassets.com/images/modules/logos_page/Octocat.png
+#name: slack-notification
+#
+#on: [push]
+#
+#jobs:
+#  slackNotification:
+#    name: Slack Notification
+#    runs-on: ubuntu-latest
+#    steps:
+#
+#    - name: Check out code
+#      uses: actions/checkout@v2
+#
+#    - name: Slack Notification
+#      uses: rtCamp/action-slack-notify@v2
+#      env:
+#        SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+#        SLACK_ICON: https://github.githubassets.com/images/modules/logos_page/Octocat.png

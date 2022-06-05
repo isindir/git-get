@@ -43,6 +43,8 @@ jobs:
       env:
         SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
         SLACK_COLOR: ${{ job.status }}
+        SLACK_USERNAME: GitHub
+        MSG_MINIMAL: ref,actions url,commit
 
   release:
     name: Release

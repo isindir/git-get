@@ -49,7 +49,7 @@ top level URL of the organisation organization, user or for Gitlab provider Grou
 	Example: `
 git-get config-gen -f Gitfile -p "gitlab" -u "git@gitlab.com:johndoe" -t misc -l debug
 git-get config-gen -f Gitfile -p "gitlab" -u "git@gitlab.com:AcmeOrg" -t misc -l debug
-git-get config-gen -f Gitfile -p "gitlab" -u "git@gitlab.com:AcmeOrg/kube"
+git-get config-gen -f Gitfile -p "gitlab" -u "git@gitlab.com:AcmeOrg/kube" -g "https"
 git-get config-gen -f Gitfile -p "bitbucket" -u "git@bitbucket.com:AcmeOrg" -t AcmeOrg
 git-get config-gen -f Gitfile -p "github" -u "git@github.com:johndoe" -t johndoe -l debug
 git-get config-gen -f Gitfile -p "github" -u "git@github.com:AcmeOrg" -t AcmeOrg -l debug`,
@@ -57,7 +57,13 @@ git-get config-gen -f Gitfile -p "github" -u "git@github.com:AcmeOrg" -t AcmeOrg
 		initLogging(logLevel)
 		log.Debug("Generate Gitfile configuration file")
 		gitget.GenerateGitfileConfig(
-			cfgFile, ignoreFiles, gitCloudProviderRootURL, gitCloudProvider, targetClonePath, configGenParams)
+			cfgFile,
+			ignoreFiles,
+			gitCloudProviderRootURL,
+			gitCloudProvider,
+			targetClonePath,
+			configGenParams,
+		)
 	},
 }
 
@@ -88,6 +94,12 @@ func init() {
 		"l",
 		"info",
 		"Logging level [debug|info|warn|error|fatal|panic]")
+	configGenCmd.Flags().StringVarP(
+		&configGenParams.GitSchema,
+		"generate-url-of-type",
+		"g",
+		"ssh",
+		"Generate git URLs of type [ssh|https]")
 	configGenCmd.Flags().StringVarP(
 		&gitCloudProvider,
 		"config-provider",

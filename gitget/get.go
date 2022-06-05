@@ -60,6 +60,9 @@ var shellRunner = new(exec.ShellRunner)
 
 // ConfigGenParamsStruct - data structure to store parameters passed via cli flags
 type ConfigGenParamsStruct struct {
+	// ssh or https in output file
+	GitSchema string
+
 	// Gitlab specific vars
 	GitlabOwned          bool
 	GitlabVisibility     string
@@ -869,10 +872,23 @@ func fetchGithubRepos(
 	log.Debugf("%s: Number of fetched repositories: '%d'", repoSha, len(ghRepoList))
 
 	for repo := 0; repo < len(ghRepoList); repo++ {
-		gitGetRepoDefinition := Repo{
-			URL: *ghRepoList[repo].SSHURL,
-			Ref: *ghRepoList[repo].DefaultBranch,
+		var gitGetRepoDefinition Repo
+		switch configGenParams.GitSchema {
+		case "ssh":
+			gitGetRepoDefinition = Repo{
+				URL: *ghRepoList[repo].SSHURL,
+				Ref: *ghRepoList[repo].DefaultBranch,
+			}
+		case "https":
+			gitGetRepoDefinition = Repo{
+				URL: *ghRepoList[repo].HTMLURL,
+				Ref: *ghRepoList[repo].DefaultBranch,
+			}
+		default:
+			log.Fatalf("%s: Error: unknown '%s' git schema", repoSha, configGenParams.GitSchema)
+			os.Exit(1)
 		}
+
 		if targetClonePath != "" {
 			gitGetRepoDefinition.Path = targetClonePath
 		}
@@ -891,6 +907,7 @@ func getBitbucketRepositoryGitURL(
 	v map[string]interface{},
 	gitCloudProviderRootURL string,
 	fullName string,
+	GitSchema string,
 ) string {
 	var bbLinks []bitbucketLinks
 	cloneLinks := v["clone"]
@@ -913,7 +930,10 @@ func getBitbucketRepositoryGitURL(
 
 	for j := 0; j < len(bbLinks); j++ {
 		log.Debugf("%+v", bbLinks[j])
-		if bbLinks[j].Name == "ssh" {
+		if (bbLinks[j].Name == "ssh") && (GitSchema == "ssh") {
+			return bbLinks[j].HREF
+		}
+		if (bbLinks[j].Name == "https") && (GitSchema == "https") {
 			return bbLinks[j].HREF
 		}
 	}
@@ -942,6 +962,7 @@ func fetchBitbucketRepos(
 				bbRepoList[repo].Links,
 				gitCloudProviderRootURL,
 				bbRepoList[repo].Full_name,
+				configGenParams.GitSchema,
 			),
 			Ref: bbRepoList[repo].Mainbranch.Name,
 		}
@@ -986,9 +1007,21 @@ func fetchGitlabRepos(
 	for repo := 0; repo < len(glRepoList); repo++ {
 		log.Debugf("%s: '%s'", repoSha, glRepoList[repo].SSHURLToRepo)
 
-		gitGetRepoDefinition := Repo{
-			URL: glRepoList[repo].SSHURLToRepo,
-			Ref: glRepoList[repo].DefaultBranch,
+		var gitGetRepoDefinition Repo
+		switch configGenParams.GitSchema {
+		case "ssh":
+			gitGetRepoDefinition = Repo{
+				URL: glRepoList[repo].SSHURLToRepo,
+				Ref: glRepoList[repo].DefaultBranch,
+			}
+		case "https":
+			gitGetRepoDefinition = Repo{
+				URL: glRepoList[repo].HTTPURLToRepo,
+				Ref: glRepoList[repo].DefaultBranch,
+			}
+		default:
+			log.Fatalf("%s: Error: unknown '%s' git schema", repoSha, configGenParams.GitSchema)
+			os.Exit(1)
 		}
 		// MAYBE: CLI flag for with Namespace
 		if targetClonePath != "" {

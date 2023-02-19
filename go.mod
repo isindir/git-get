@@ -1,7 +1,7 @@
 module github.com/isindir/git-get
 
 // UPDATE_HERE
-go 1.18
+go 1.20
 
 require (
 	github.com/fatih/color v1.14.1

@@ -24,7 +24,7 @@ help: ## Display this help.
 
 .PHONY: build
 build: ## Builds the binary file
-	$(GOR) build --rm-dist --snapshot
+	$(GOR) build --clean --snapshot
 
 .PHONY: run
 run: ## Runs main help
@@ -41,7 +41,7 @@ test: ## Placeholder to run unit tests
 .PHONY: check
 check: ## Runs linting
 	@echo "Linting"
-	@for d in $$(go list ./... | grep -v /vendor/); do golint $${d}; done
+	@for d in $$(go list ./... | egrep -v 'vendor|asdf'); do staticcheck $${d}; done
 	@echo
 
 .PHONY: fmt

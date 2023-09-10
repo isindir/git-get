@@ -20,7 +20,7 @@ builds:
       - "-s -w -X github.com/isindir/git-get/version.Version=v{{.Version}} -X github.com/isindir/git-get/version.Commit={{.ShortCommit}} -X github.com/isindir/git-get/version.Time={{.CommitDate}}"
 brews:
   - name: git-get
-    tap:
+    repository:
       owner: isindir
       name: homebrew-git-get
       branch: master

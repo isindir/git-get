@@ -17,13 +17,13 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v4
       with:
-        go-version: "1.21.1"
+        go-version: "1.21.3"
       id: go
 
     - name: Install GoReleaser
       uses: goreleaser/goreleaser-action@v4
       with:
-        version: v1.20.0
+        version: v1.21.2
         install-only: true
 
     - name: Check out code into the Go module directory
@@ -56,13 +56,13 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v4
       with:
-        go-version: "1.21.1"
+        go-version: "1.21.3"
       id: go
 
     - name: Install GoReleaser
       uses: goreleaser/goreleaser-action@v4
       with:
-        version: v1.20.0
+        version: v1.21.2
         install-only: true
 
     - name: Install svu

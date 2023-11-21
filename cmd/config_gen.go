@@ -54,7 +54,7 @@ git-get config-gen -f Gitfile -p "bitbucket" -u "git@bitbucket.com:AcmeOrg" -t A
 git-get config-gen -f Gitfile -p "github" -u "git@github.com:johndoe" -t johndoe -l debug
 git-get config-gen -f Gitfile -p "github" -u "git@github.com:AcmeOrg" -t AcmeOrg -l debug`,
 	Run: func(cmd *cobra.Command, args []string) {
-		initLogging(logLevel)
+		initLogging()
 		log.Debug("Generate Gitfile configuration file")
 		gitget.GenerateGitfileConfig(
 			cfgFile,

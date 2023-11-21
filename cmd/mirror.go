@@ -65,7 +65,7 @@ git-get mirror -c 2 -f Gitfile -l debug -u "git@bitbucket.com:acmeorg" -p "bitbu
 				os.Exit(1)
 			}
 		}
-		initLogging(logLevel)
+		initLogging()
 		log.Debugf("%t - push to mirror", pushMirror)
 		pushMirror = !dryRun
 		gitget.MirrorRepositories(

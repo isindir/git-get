@@ -91,7 +91,7 @@ git get -c 8 -f Gitfile --status -i Gitfile.ignore -l panic \
 				os.Exit(1)
 			}
 		}
-		initLogging(logLevel)
+		initLogging()
 		gitget.GetRepositories(
 			cfgFiles,
 			ignoreFiles,
@@ -104,7 +104,7 @@ git get -c 8 -f Gitfile --status -i Gitfile.ignore -l panic \
 	},
 }
 
-func initLogging(level string) {
+func initLogging() {
 	log.SetLevel(levels[logLevel])
 }
 

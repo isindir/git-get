@@ -5,3 +5,5 @@ golang 1.21.4
 goreleaser 1.22.1
 # https://github.com/vektra/mockery/releases
 mockery 2.38.0
+# https://github.com/caarlos0/svu/releases
+svu 1.11.0

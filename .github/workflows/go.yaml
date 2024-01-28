@@ -17,13 +17,13 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v4
       with:
-        go-version: "1.21.4"
+        go-version: "1.21.6"
       id: go
 
     - name: Install GoReleaser
       uses: goreleaser/goreleaser-action@v4
       with:
-        version: v1.22.1
+        version: v1.23.0
         install-only: true
 
     - name: Check out code into the Go module directory
@@ -56,19 +56,19 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v4
       with:
-        go-version: "1.21.4"
+        go-version: "1.21.6"
       id: go
 
     - name: Install GoReleaser
       uses: goreleaser/goreleaser-action@v4
       with:
-        version: v1.22.1
+        version: v1.23.0
         install-only: true
 
     - name: Install svu
       run: |
         # https://github.com/caarlos0/svu/releases
-        curl -L https://github.com/caarlos0/svu/releases/download/v1.11.0/svu_1.11.0_linux_amd64.tar.gz | sudo tar -C /usr/local/bin/ -xz -f - svu
+        curl -L https://github.com/caarlos0/svu/releases/download/v1.12.0/svu_1.12.0_linux_amd64.tar.gz | sudo tar -C /usr/local/bin/ -xz -f - svu
 
     - name: Check out code into the Go module directory
       uses: actions/checkout@v3

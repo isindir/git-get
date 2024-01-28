@@ -27,7 +27,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/google/go-github/v56/github"
+	"github.com/google/go-github/v58/github"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"

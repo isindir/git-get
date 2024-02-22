@@ -199,3 +199,4 @@ Flags:
 * https://github.com/grdl/git-get
 * https://github.com/x-motemen/ghq
 * https://github.com/fboender/multi-git-status
+* https://github.com/gabrie30/ghorg

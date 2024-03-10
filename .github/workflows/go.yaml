@@ -1,4 +1,3 @@
-# UPDATE_HERE
 name: build-git-get
 
 on: [push]
@@ -13,9 +12,13 @@ jobs:
     runs-on: ubuntu-latest
     if: github.ref != 'refs/heads/master'
     steps:
+      # UPDATE_HERE
+      # https://github.com/actions/checkout/releases
       - name: Check out code into the Go module directory
         uses: actions/checkout@v4
 
+      # UPDATE_HERE
+      # https://github.com/asdf-vm/actions/releases
       - name: Install asdf & tools
         uses: asdf-vm/actions/install@v2
 
@@ -42,9 +45,13 @@ jobs:
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/master'
     steps:
+      # UPDATE_HERE
+      # https://github.com/actions/checkout/releases
       - name: Check out code into the Go module directory
         uses: actions/checkout@v4
 
+      # UPDATE_HERE
+      # https://github.com/asdf-vm/actions/releases
       - name: Install asdf & tools
         uses: asdf-vm/actions/install@v2
 

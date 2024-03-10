@@ -78,5 +78,4 @@ clean: ## Removes build artifacts from source code
 
 .PHONY: update-here
 update-here: ## Helper target to start editing all occurances with UPDATE_HERE.
-	@echo "Update following files for release:"
-	@grep --color -nHR UPDATE_HERE .
+	@git grep -H UPDATE_HERE | sed -e 's/:.*//' | sort -u

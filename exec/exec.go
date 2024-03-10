@@ -7,14 +7,19 @@ import (
 
 const gitCmd = "git"
 
-type ShellRunnerI interface {
-	ExecGitCommand(args []string, stdoutb *bytes.Buffer, erroutb *bytes.Buffer, dir string) (cmd *exec.Cmd, err error)
+type GitRunnerI interface {
+	ExecGitCommand(
+		args []string,
+		stdoutb *bytes.Buffer,
+		erroutb *bytes.Buffer,
+		dir string,
+	) (cmd *exec.Cmd, err error)
 }
 
-type ShellRunner struct{}
+type ShellGitRunner struct{}
 
 // ExecGitCommand executes git with flags passed as `args` and can change working directory if `dir` is passed
-func (repo *ShellRunner) ExecGitCommand(
+func (repo *ShellGitRunner) ExecGitCommand(
 	args []string,
 	stdoutb *bytes.Buffer,
 	erroutb *bytes.Buffer,

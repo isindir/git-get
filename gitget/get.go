@@ -117,9 +117,9 @@ type RepoStatus struct {
 
 // RepoI interface defined for mocking purposes.
 type RepoI interface {
+	ChoosePathPrefix(pathPrefix string) string
 	Clone() bool
 	CreateSymlink(symlink string)
-	ChoosePathPrefix(pathPrefix string) string
 	EnsurePathExists()
 	GetCurrentBranch() string
 	GetRepoLocalName() string
@@ -132,6 +132,7 @@ type RepoI interface {
 	IsRefBranch() bool
 	IsRefTag() bool
 	PathExists(path string) (bool, os.FileInfo)
+	PlainOpen(repo RepoI) (*git.Repository, error)
 	PrepareForGet()
 	PrepareForMirror(pathPrefix string, mirrorRootURL string)
 	ProcessRepoBasedOnCleaness()
@@ -147,6 +148,11 @@ type RepoI interface {
 func initColors() {
 	colorHighlight = color.New(color.FgRed)
 	colorRef = color.New(color.FgHiBlue)
+}
+
+func (r *Repo) PlainOpen(repo RepoI) (*git.Repository, error) {
+	gitRepo, err := git.PlainOpen(repo.fullPath)
+	return gitRepo, err
 }
 
 // SetDefaultRef sets in place default name of the ref to master (by default) or user passed via flag if not specified
@@ -219,14 +225,14 @@ func generateSha(input string) string {
 	return fmt.Sprintf("%x", h.Sum(nil))[0:7]
 }
 
-func (repo *Repo) SetShellRunner(exe exec.GitRunnerI) {
+func (repo *Repo) SetGitRunner(exe exec.GitRunnerI) {
 	repo.executor = &exe
 }
 
 // PrepareForGet performs checks for repository as well as constructs
 // extra information and sets repository data structure values.
 func (repo *Repo) PrepareForGet() {
-	repo.SetShellRunner(shellRunner)
+	repo.SetGitRunner(shellRunner)
 	repo.EnsurePathExists("")
 	repo.SetDefaultRef()
 	repo.SetRepoLocalName()
@@ -239,7 +245,7 @@ func (repo *Repo) PrepareForGet() {
 
 // PrepareForMirror - set repository structure fields for mirror operation
 func (repo *Repo) PrepareForMirror(pathPrefix string, mirrorRootURL string) {
-	repo.SetShellRunner(shellRunner)
+	repo.SetGitRunner(shellRunner)
 	repo.SetTempRepoPathForMirror(pathPrefix)
 	repo.SetDefaultRef()
 	repo.SetRepoLocalName()
@@ -471,8 +477,8 @@ func (repo *Repo) GitStashPop() bool {
 }
 
 // IsRefBranch returns true if branch ref exists
-func (repo *Repo) IsRefBranch() bool {
-	gitRepo, err := git.PlainOpen(repo.fullPath)
+func (r *Repo) IsRefBranch(repo RepoI) bool {
+	gitRepo, err := repo.PlainOpen(repo)
 	if err != nil {
 		return false
 	}
@@ -485,7 +491,7 @@ func (repo *Repo) IsRefBranch() bool {
 }
 
 func (repo *Repo) IsRefTag() bool {
-	gitRepo, err := git.PlainOpen(repo.fullPath)
+	gitRepo, err := repo.PlainOpen()
 	if err != nil {
 		return false
 	}
@@ -495,7 +501,7 @@ func (repo *Repo) IsRefTag() bool {
 }
 
 func (repo *Repo) GitPull() {
-	if repo.IsRefBranch() {
+	if repo.IsRefBranch(repo) {
 		log.Infof("%s: Pulling upstream changes", repo.sha)
 		var serr bytes.Buffer
 		_, err := (*repo.executor).ExecGitCommand(

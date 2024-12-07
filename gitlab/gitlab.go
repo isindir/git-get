@@ -237,7 +237,7 @@ func (gitProvider *GitGetGitlab) getGroupID(
 			foundGroups[group].ID,
 			foundGroups[group].FullName,
 		)
-		if groupName == strings.Replace(foundGroups[group].FullName, " ", "", -1) {
+		if groupName == strings.ReplaceAll(foundGroups[group].FullName, " ", "") {
 			return foundGroups[group].ID, foundGroups[group].FullName, nil
 		}
 	}

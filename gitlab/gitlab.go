@@ -41,10 +41,25 @@ type GitGetGitlab struct {
 type GitGetGitlabI interface {
 	Init() bool
 
-	gitlabAuth(repositorySha string, baseUrl string) bool
-	ProjectExists(repositorySha string, baseUrl string, projectName string) bool
-	GetProjectNamespace(repositorySha string, baseUrl string, projectNameFullPath string) (*gitlab.Namespace, string)
-	getGroupID(repoSha string, git *gitlab.Client, groupName string) (int, string, error)
+	gitlabAuth(
+		repositorySha string,
+		baseUrl string,
+	) bool
+	ProjectExists(
+		repositorySha string,
+		baseUrl string,
+		projectName string,
+	) bool
+	GetProjectNamespace(
+		repositorySha string,
+		baseUrl string,
+		projectNameFullPath string,
+	) (*gitlab.Namespace, string)
+	getGroupID(
+		repoSha string,
+		git *gitlab.Client,
+		groupName string,
+	) (int, string, error)
 
 	CreateProject(
 		repositorySha string,
@@ -93,7 +108,7 @@ func (gitProvider *GitGetGitlab) Init() bool {
 	return tokenFound
 }
 
-func (gitProvider *GitGetGitlab) auth(repositorySha string, baseUrl string) bool {
+func (gitProvider *GitGetGitlab) auth(repositorySha, baseUrl string) bool {
 	clientOptions := gitlab.WithBaseURL("https://" + baseUrl)
 	var err error
 	gitProvider.client, err = gitlab.NewClient(gitProvider.token, clientOptions)
@@ -106,7 +121,7 @@ func (gitProvider *GitGetGitlab) auth(repositorySha string, baseUrl string) bool
 }
 
 // ProjectExists checks if project exists and returns boolean if API call is successful
-func (gitProvider *GitGetGitlab) ProjectExists(repositorySha string, baseUrl string, projectName string) bool {
+func (gitProvider *GitGetGitlab) ProjectExists(repositorySha, baseUrl, projectName string) bool {
 	log.Debugf("%s: Checking repository '%s' '%s' existence", repositorySha, baseUrl, projectName)
 	gitProvider.auth(repositorySha, baseUrl)
 
@@ -114,15 +129,15 @@ func (gitProvider *GitGetGitlab) ProjectExists(repositorySha string, baseUrl str
 
 	log.Debugf("%s: project: '%+v'", repositorySha, prj)
 
-	if err != nil {
-		return false
-	}
-
-	return true
+	return err == nil
 }
 
 // GetProjectNamespace - return Project Namespace and namespace full path
-func (gitProvider *GitGetGitlab) GetProjectNamespace(repositorySha string, baseUrl string, projectNameFullPath string) (*gitlab.Namespace, string) {
+func (gitProvider *GitGetGitlab) GetProjectNamespace(
+	repositorySha string,
+	baseUrl string,
+	projectNameFullPath string,
+) (namespaceObject *gitlab.Namespace, namespaceFullPath string) {
 	log.Debugf("%s: Getting Project FullPath Namespace '%s'", repositorySha, projectNameFullPath)
 	gitProvider.auth(repositorySha, baseUrl)
 
@@ -131,7 +146,7 @@ func (gitProvider *GitGetGitlab) GetProjectNamespace(repositorySha string, baseU
 	if len(pathElements) > 0 {
 		pathElements = pathElements[:len(pathElements)-1]
 	}
-	namespaceFullPath := strings.Join(pathElements, "/")
+	namespaceFullPath = strings.Join(pathElements, "/")
 
 	namespaceObject, _, err := gitProvider.client.Namespaces.GetNamespace(namespaceFullPath, nil, nil)
 
@@ -146,6 +161,22 @@ func (gitProvider *GitGetGitlab) GetProjectNamespace(repositorySha string, baseU
 	return namespaceObject, namespaceFullPath
 }
 
+func boolPtr(value bool) *bool {
+	return &value
+}
+
+func stringPtr(value string) *string {
+	return &value
+}
+
+func intPtr(value int) *int {
+	return &value
+}
+
+func gitlabVisibilityValuePtr(value gitlab.VisibilityValue) *gitlab.VisibilityValue {
+	return &value
+}
+
 // CreateProject - Create new code repository
 func (gitProvider *GitGetGitlab) CreateProject(
 	repositorySha string,
@@ -158,30 +189,40 @@ func (gitProvider *GitGetGitlab) CreateProject(
 	gitProvider.auth(repositorySha, baseUrl)
 
 	p := &gitlab.CreateProjectOptions{
-		Name:                 gitlab.String(projectName),
-		Description:          gitlab.String(fmt.Sprintf("Mirror of the '%s'", sourceURL)),
-		MergeRequestsEnabled: gitlab.Bool(true),
-		Visibility:           gitlab.Visibility(gitlab.VisibilityValue(mirrorVisibilityMode)),
+		Name: stringPtr(projectName),
+		Description: stringPtr(
+			fmt.Sprintf("Mirror of the '%s'", sourceURL),
+		),
+		MergeRequestsEnabled: boolPtr(true),
+		Visibility: gitlabVisibilityValuePtr(
+			gitlab.VisibilityValue(mirrorVisibilityMode),
+		),
 	}
 	if namespaceID != 0 {
-		p.NamespaceID = gitlab.Int(namespaceID)
+		p.NamespaceID = intPtr(namespaceID)
 	}
 
 	project, _, err := gitProvider.client.Projects.CreateProject(p)
 	if err != nil {
 		log.Fatalf(
 			"%s: Error - while trying to create gitlab project '%s': '%s'",
-			repositorySha, projectName, err)
+			repositorySha,
+			projectName,
+			err,
+		)
 		os.Exit(1)
 	}
 
 	return project
 }
 
-func (gitProvider *GitGetGitlab) getGroupID(repoSha string, git *gitlab.Client, groupName string) (int, string, error) {
+func (gitProvider *GitGetGitlab) getGroupID(
+	repoSha string,
+	git *gitlab.Client,
+	groupName string,
+) (foundGroupId int, foundGroupFullName string, err error) {
 	// Fetch group ID needed for other operations
 	_, shortName := filepath.Split(groupName)
-	//escapedGroupName := url.QueryEscape(groupName)
 	escapedGroupName := url.QueryEscape(shortName)
 
 	foundGroups, _, err := git.Groups.SearchGroup(escapedGroupName)
@@ -192,8 +233,11 @@ func (gitProvider *GitGetGitlab) getGroupID(repoSha string, git *gitlab.Client, 
 	for group := 0; group < len(foundGroups); group++ {
 		log.Debugf(
 			"%s: Checking group '%d:%s' to be as specified",
-			repoSha, foundGroups[group].ID, foundGroups[group].FullName)
-		if groupName == strings.Replace(foundGroups[group].FullName, " ", "", -1) {
+			repoSha,
+			foundGroups[group].ID,
+			foundGroups[group].FullName,
+		)
+		if groupName == strings.ReplaceAll(foundGroups[group].FullName, " ", "") {
 			return foundGroups[group].ID, foundGroups[group].FullName, nil
 		}
 	}
@@ -220,9 +264,9 @@ func (gitProvider *GitGetGitlab) processSubgroups(
 
 	subGrpOpt := &gitlab.ListSubGroupsOptions{
 		ListOptions:  lstOpts,
-		AllAvailable: gitlab.Bool(true),
-		TopLevelOnly: gitlab.Bool(false),
-		Owned:        gitlab.Bool(gitlabOwned),
+		AllAvailable: boolPtr(true),
+		TopLevelOnly: boolPtr(false),
+		Owned:        boolPtr(gitlabOwned),
 	}
 	switch gitlabMinAccessLevel {
 	case "min":
@@ -319,8 +363,8 @@ func (gitProvider *GitGetGitlab) appendGroupsProjects(
 	// https://docs.gitlab.com/ee/api/groups.html#list-a-groups-projects
 	prjOpt := &gitlab.ListGroupProjectsOptions{
 		ListOptions: lstOpts,
-		Owned:       gitlab.Bool(gitlabOwned),
-		Simple:      gitlab.Bool(true),
+		Owned:       boolPtr(gitlabOwned),
+		Simple:      boolPtr(true),
 	}
 	switch gitlabVisibility {
 	case "private":

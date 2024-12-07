@@ -50,7 +50,7 @@ func githubAuth(ctx context.Context, repositorySha string) *github.Client {
 }
 
 // RepositoryExists - check if remote github repository exists
-func RepositoryExists(ctx context.Context, repositorySha string, owner string, repository string) bool {
+func RepositoryExists(ctx context.Context, repositorySha, owner, repository string) bool {
 	git := githubAuth(ctx, repositorySha)
 	repo, _, err := git.Repositories.Get(ctx, owner, repository)
 

@@ -36,24 +36,28 @@ import (
 
 var configGenParams gitget.ConfigGenParamsStruct
 
-var cfgFile string
-var cfgFiles []string
-var ignoreFiles []string
-var logLevel string
-var stayOnRef bool
-var shallow bool
-var concurrencyLevel int
-var pushMirror bool
-var dryRun bool
-var gitCloudProviderRootURL string
-var targetClonePath string
-var defaultMainBranch string
-var status bool
-var gitCloudProvider string
+var (
+	cfgFile                 string
+	cfgFiles                []string
+	ignoreFiles             []string
+	logLevel                string
+	stayOnRef               bool
+	shallow                 bool
+	concurrencyLevel        int
+	pushMirror              bool
+	dryRun                  bool
+	gitCloudProviderRootURL string
+	targetClonePath         string
+	defaultMainBranch       string
+	status                  bool
+	gitCloudProvider        string
+)
 
 // Mirroring specific vars
-var mirrorVisibilityMode string
-var mirrorBitbucketProjectName string
+var (
+	mirrorVisibilityMode       string
+	mirrorBitbucketProjectName string
+)
 
 var levels = map[string]log.Level{
 	"panic": log.PanicLevel,

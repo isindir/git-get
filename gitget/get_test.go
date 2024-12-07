@@ -35,7 +35,6 @@ func Test_SetDefaultRef(t *testing.T) {
 }
 
 func Test_GetRepoLocalName(t *testing.T) {
-
 	// Test extracting altname from git repo name, if altname is not specified
 	var altname string
 	for repoURL, expectedAltName := range repoUrls {
@@ -52,7 +51,6 @@ func Test_GetRepoLocalName(t *testing.T) {
 }
 
 func Test_SetRepoLocalName(t *testing.T) {
-
 	for repoURL, expectedAltName := range repoUrls {
 		repo := Repo{}
 		repo.URL = repoURL
@@ -368,14 +366,22 @@ func Test_Repo_IsClean(t *testing.T) {
 	}
 
 	testCases := []testCase{
-		{name: "test 1: no error", expectedResult: true,
-			repo: Repo{fullPath: "cde_p"}, err1: nil, err2: nil},
-		{name: "test 2: err1 raised", expectedResult: false,
-			repo: Repo{fullPath: "cde_a"}, err1: fmt.Errorf("test error"), err2: nil},
-		{name: "test 3: err2 raised", expectedResult: false,
-			repo: Repo{fullPath: "cde_a"}, err1: nil, err2: fmt.Errorf("test error")},
-		{name: "test 3: err1 and err2 can be raised", expectedResult: false,
-			repo: Repo{fullPath: "cde_a"}, err1: fmt.Errorf("test error"), err2: fmt.Errorf("test error")},
+		{
+			name: "test 1: no error", expectedResult: true,
+			repo: Repo{fullPath: "cde_p"}, err1: nil, err2: nil,
+		},
+		{
+			name: "test 2: err1 raised", expectedResult: false,
+			repo: Repo{fullPath: "cde_a"}, err1: fmt.Errorf("test error"), err2: nil,
+		},
+		{
+			name: "test 3: err2 raised", expectedResult: false,
+			repo: Repo{fullPath: "cde_a"}, err1: nil, err2: fmt.Errorf("test error"),
+		},
+		{
+			name: "test 3: err1 and err2 can be raised", expectedResult: false,
+			repo: Repo{fullPath: "cde_a"}, err1: fmt.Errorf("test error"), err2: fmt.Errorf("test error"),
+		},
 	}
 
 	for _, tc := range testCases {

@@ -23,10 +23,3 @@ jobs:
       # https://github.com/reviewdog/action-actionlint/releases
       - name: action-lint
         uses: reviewdog/action-actionlint@v1
-
-      # UPDATE_HERE
-      # https://github.com/reviewdog/action-hadolint/releases
-      - name: docker-hadolint
-        uses: reviewdog/action-hadolint@v1
-        with:
-          hadolint_flags: --trusted-registry docker.io

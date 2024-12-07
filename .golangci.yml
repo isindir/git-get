@@ -1,0 +1,98 @@
+---
+run:
+  concurrency: 6
+  deadline: 5m
+issues:
+  exclude-rules:
+    # counterfeiter fakes are usually named 'fake_<something>.go'
+    - path: fake_.*\.go
+      linters:
+        - gocritic
+        - golint
+        - dupl
+linters:
+  # please, do not use `enable-all`: it's deprecated and will be removed soon.
+  # inverted configuration with `enable-all` and `disable` is not scalable during updates of golangci-lint
+  disable-all: true
+
+  enable:
+    - asciicheck
+    - bodyclose
+    - errcheck
+    - exportloopref
+    - goconst
+    - gocritic
+    - gofmt
+    - gofumpt
+    - goimports
+    - gosec
+    - gosimple
+    - govet
+    - ineffassign
+    - misspell
+    - nakedret
+    - nolintlint
+    - prealloc
+    - unconvert
+    - unconvert
+    - whitespace
+    - unused
+    - ineffassign
+    # - unparam
+    # - revive
+    # - stylecheck
+    # - lll
+    # - gomnd
+    # - goprintffuncname
+    # - interfacer
+    # - staticcheck
+    # - structcheck
+    # - typecheck
+    # - goerr113
+    # - noctx
+
+linters-settings:
+  gosec:
+    excludes:
+      - G402
+  gocritic:
+    enabled-checks:
+      # Diagnostic
+      - commentedOutCode
+      - nilValReturn
+      - sloppyReassign
+      - weakCond
+      - octalLiteral
+
+      # Performance
+      - appendCombine
+      - equalFold
+      - hugeParam
+      - indexAlloc
+      - rangeExprCopy
+      # - rangeValCopy
+
+      # Style
+      - boolExprSimplify
+      - commentedOutImport
+      - docStub
+      - emptyFallthrough
+      - emptyStringTest
+      - hexLiteral
+      - methodExprCall
+      - stringXbytes
+      - typeAssertChain
+      - unlabelStmt
+      - yodaStyleExpr
+      # - ifElseChain
+
+      # Opinionated
+      - builtinShadow
+      - importShadow
+      - initClause
+      - nestingReduce
+      - paramTypeCombine
+      - ptrToRefParam
+      - typeUnparen
+      - unnamedResult
+      - unnecessaryBlock

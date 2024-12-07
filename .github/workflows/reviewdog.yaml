@@ -11,23 +11,22 @@ jobs:
       - name: check out code into the go module directory
         uses: actions/checkout@v4
 
-      # UPDATE_HERE
-      # https://github.com/webfactory/ssh-agent/releases
-      - name: Configure SSH private key for private repos
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          # AWS secret: storm/deploy-ssh-keys
-          ssh-private-key: |
-            ${{ secrets.SSH_KEY }}
 
       # UPDATE_HERE
       # https://github.com/reviewdog/action-golangci-lint/releases
       - name: golangci-lint
         uses: reviewdog/action-golangci-lint@v2
         with:
-          golangci_lint_flags: "--timeout=4m"
+          golangci_lint_flags: "--timeout=15m"
 
       # UPDATE_HERE
       # https://github.com/reviewdog/action-actionlint/releases
       - name: action-lint
         uses: reviewdog/action-actionlint@v1
+
+      # UPDATE_HERE
+      # https://github.com/reviewdog/action-hadolint/releases
+      - name: docker-hadolint
+        uses: reviewdog/action-hadolint@v1
+        with:
+          hadolint_flags: --trusted-registry docker.io

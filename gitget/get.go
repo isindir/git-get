@@ -232,7 +232,7 @@ func (repo *Repo) PrepareForGet() {
 	repo.SetRepoFullPath()
 	repo.SetSha()
 
-	log.Infof("%s: url: %s (%s) -> %s", repo.sha, repo.URL, colorRef.Sprintf(repo.Ref), repo.fullPath)
+	log.Infof("%s: url: %s (%s) -> %s", repo.sha, repo.URL, colorRef.Sprintf("%s", repo.Ref), repo.fullPath)
 	log.Debugf("%s: Repository structure: '%+v'", repo.sha, repo)
 }
 
@@ -246,7 +246,7 @@ func (repo *Repo) PrepareForMirror(pathPrefix string, mirrorRootURL string) {
 	repo.SetRepoFullPath()
 	repo.SetSha()
 
-	log.Infof("%s: url: %s (%s) -> %s", repo.sha, repo.URL, colorRef.Sprintf(repo.Ref), repo.fullPath)
+	log.Infof("%s: url: %s (%s) -> %s", repo.sha, repo.URL, colorRef.Sprintf("%s", repo.Ref), repo.fullPath)
 	log.Debugf("%s: Repository structure: '%+v'", repo.sha, repo)
 }
 
@@ -375,10 +375,7 @@ func (repo *Repo) IsClean() bool {
 		return false
 	}
 	_, err = (*repo.executor).ExecGitCommand([]string{"diff", "--staged", "--quiet"}, nil, nil, repo.fullPath)
-	if err != nil {
-		return false
-	}
-	return true
+	return err == nil
 }
 
 func (repo *Repo) IsCurrentBranchRef() bool {
@@ -443,10 +440,7 @@ func (repo *Repo) IsRefBranch() bool {
 		nil,
 		repo.fullPath,
 	)
-	if err != nil {
-		return false
-	}
-	return true
+	return err == nil
 }
 
 func (repo *Repo) IsRefTag() bool {
@@ -457,10 +451,7 @@ func (repo *Repo) IsRefTag() bool {
 		nil,
 		repo.fullPath,
 	)
-	if err != nil {
-		return false
-	}
-	return true
+	return err == nil
 }
 
 func (repo *Repo) GitPull() {
@@ -496,7 +487,7 @@ func (repo *Repo) ProcessRepoBasedOnCleaness() {
 }
 
 func (repo *Repo) GitCheckout(branch string) bool {
-	log.Infof("%s: Checkout to '%s' branch in '%s'", repo.sha, colorHighlight.Sprintf(branch), repo.fullPath)
+	log.Infof("%s: Checkout to '%s' branch in '%s'", repo.sha, colorHighlight.Sprintf("%s", branch), repo.fullPath)
 	var serr bytes.Buffer
 	res := true
 

@@ -19,7 +19,6 @@ linters:
     - asciicheck
     - bodyclose
     - errcheck
-    - exportloopref
     - goconst
     - gocritic
     - gofmt

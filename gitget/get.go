@@ -1058,7 +1058,7 @@ func fetchGitlabRepos(
 	return repoList
 }
 
-func writeReposToFile(repoSha string, cfgFile string, repoList []Repo) {
+func writeReposToFile(repoSha, cfgFile string, repoList []Repo) {
 	if len(repoList) > 0 {
 		log.Infof(
 			"%s: Final number of repositories to be written to '%s': '%d'",

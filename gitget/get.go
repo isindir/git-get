@@ -1059,7 +1059,7 @@ func writeReposToFile(repoSha string, cfgFile string, repoList []Repo) {
 		}
 
 		log.Infof("%s: Writing file '%s'", repoSha, cfgFile)
-		err = ioutil.WriteFile(cfgFile, repoData, 0o644)
+		err = os.WriteFile(cfgFile, repoData, 0o644)
 		if err != nil {
 			log.Fatalf("%s: %s", cfgFile, err)
 		}

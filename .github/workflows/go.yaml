@@ -20,7 +20,7 @@ jobs:
       # UPDATE_HERE
       # https://github.com/asdf-vm/actions/releases
       - name: Install asdf & tools
-        uses: asdf-vm/actions/install@v2
+        uses: asdf-vm/actions/install@v3
 
       - name: Check out full code history
         run: |
@@ -53,7 +53,7 @@ jobs:
       # UPDATE_HERE
       # https://github.com/asdf-vm/actions/releases
       - name: Install asdf & tools
-        uses: asdf-vm/actions/install@v2
+        uses: asdf-vm/actions/install@v3
 
       - name: Check out full code history
         run: |

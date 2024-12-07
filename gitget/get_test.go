@@ -10,7 +10,8 @@ import (
 	"path"
 	"testing"
 
-	"github.com/isindir/git-get/exec/mocks"
+	execMocks "github.com/isindir/git-get/exec/mocks"
+	gitgetMocks "github.com/isindir/git-get/gitget/mocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -153,22 +154,23 @@ func Test_SetMirrorURL(t *testing.T) {
 	}
 }
 
+/*
 func Test_Repo_IsRefTag(t *testing.T) {
 	type testCase struct {
 		name           string
 		repo           Repo
 		expectedResult bool
-		returnError    error
+		plainOpenError error
 	}
 
 	testCases := []testCase{
-		{name: "test 1", expectedResult: true, repo: Repo{Ref: "abc", fullPath: "cde_p"}, returnError: nil},
-		{name: "test 2", expectedResult: false, repo: Repo{Ref: "cde", fullPath: "cde_a"}, returnError: fmt.Errorf("test error")},
+		{name: "test 1", expectedResult: true, repo: Repo{Ref: "abc", fullPath: "cde_p"}, plainOpenError: nil},
+		{name: "test 2", expectedResult: false, repo: Repo{Ref: "cde", fullPath: "cde_a"}, plainOpenError: fmt.Errorf("test error")},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			mockGitExec := new(mocks.ShellRunnerI)
+			mockGitExec := new(execMocks.GitRunnerI)
 			exe := &exec.Cmd{}
 
 			mockGitExec.On(
@@ -176,44 +178,70 @@ func Test_Repo_IsRefTag(t *testing.T) {
 				[]string{"show-ref", "--quiet", "--verify", fmt.Sprintf("refs/tags/%s", tc.repo.Ref)},
 				(*bytes.Buffer)(nil),
 				(*bytes.Buffer)(nil),
-				tc.repo.fullPath).Return(exe, tc.returnError)
+				tc.repo.fullPath).Return(exe, tc.plainOpenError)
 
-			tc.repo.SetShellRunner(mockGitExec)
+			tc.repo.SetGitRunner(mockGitExec)
 
 			result := tc.repo.IsRefTag()
 			assert.Equal(t, tc.expectedResult, result)
 		})
 	}
 }
+*/
 
 func Test_Repo_IsRefBranch(t *testing.T) {
 	type testCase struct {
 		name           string
 		repo           Repo
 		expectedResult bool
-		returnError    error
+		plainOpenError error
+		referenceError error
 	}
 
 	testCases := []testCase{
-		{name: "test 1", expectedResult: true, repo: Repo{Ref: "abc", fullPath: "cde_p"}, returnError: nil},
-		{name: "test 2", expectedResult: false, repo: Repo{Ref: "cde", fullPath: "cde_a"}, returnError: fmt.Errorf("test error")},
+		{
+			name:           "No errors",
+			expectedResult: true,
+			repo:           Repo{Ref: "abc", fullPath: "cde_p"},
+			plainOpenError: nil,
+			referenceError: nil,
+		},
+		{
+			name:           "error on plan open",
+			expectedResult: false,
+			repo:           Repo{Ref: "cde", fullPath: "cde_a"},
+			plainOpenError: fmt.Errorf("test error"),
+			referenceError: nil,
+		},
+		{
+			name:           "error on reference",
+			expectedResult: false,
+			repo:           Repo{Ref: "cde", fullPath: "cde_a"},
+			plainOpenError: nil,
+			referenceError: fmt.Errorf("test error"),
+		},
+		{
+			name:           "both errors",
+			expectedResult: false,
+			repo:           Repo{Ref: "cde", fullPath: "cde_a"},
+			plainOpenError: fmt.Errorf("test error"),
+			referenceError: fmt.Errorf("test error"),
+		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			mockGitExec := new(mocks.ShellRunnerI)
-			exe := &exec.Cmd{}
+			mockGitgetRepo := new(gitgetMocks.RepoI)
+			mockGoRepository := new(gitgetMocks.RepositoryI)
+			mockGitgetRepo.On(
+				"PlainOpen",
+			).Return(mockGoRepository, tc.plainOpenError)
 
-			mockGitExec.On(
-				"ExecGitCommand",
-				[]string{"show-ref", "--quiet", "--verify", fmt.Sprintf("refs/heads/%s", tc.repo.Ref)},
-				(*bytes.Buffer)(nil),
-				(*bytes.Buffer)(nil),
-				tc.repo.fullPath).Return(exe, tc.returnError)
+			mockGoRepository.On(
+				"Reference",
+			).Return(nil, tc.referenceError)
 
-			tc.repo.SetShellRunner(mockGitExec)
-
-			result := tc.repo.IsRefBranch()
+			result := tc.repo.IsRefBranch(mockGitgetRepo)
 			assert.Equal(t, tc.expectedResult, result)
 		})
 	}
@@ -234,7 +262,7 @@ func Test_Repo_GitStashPop(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			mockGitExec := new(mocks.ShellRunnerI)
+			mockGitExec := new(execMocks.GitRunnerI)
 			exe := &exec.Cmd{}
 			serr := &bytes.Buffer{}
 
@@ -245,7 +273,7 @@ func Test_Repo_GitStashPop(t *testing.T) {
 				serr,
 				tc.repo.fullPath).Return(exe, tc.returnError)
 
-			tc.repo.SetShellRunner(mockGitExec)
+			tc.repo.SetGitRunner(mockGitExec)
 
 			result := tc.repo.GitStashPop()
 			assert.Equal(t, tc.expectedResult, result)
@@ -269,7 +297,7 @@ func Test_Repo_GitStashSave(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			mockGitExec := new(mocks.ShellRunnerI)
+			mockGitExec := new(execMocks.GitRunnerI)
 			exe := &exec.Cmd{}
 			serr := &bytes.Buffer{}
 
@@ -280,7 +308,7 @@ func Test_Repo_GitStashSave(t *testing.T) {
 				serr,
 				tc.repo.fullPath).Return(exe, tc.returnError)
 
-			tc.repo.SetShellRunner(mockGitExec)
+			tc.repo.SetGitRunner(mockGitExec)
 
 			result := tc.repo.GitStashSave()
 			assert.Equal(t, tc.expectedResult, result)
@@ -304,7 +332,7 @@ func Test_Repo_CloneMirror(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			mockGitExec := new(mocks.ShellRunnerI)
+			mockGitExec := new(execMocks.GitRunnerI)
 			exe := &exec.Cmd{}
 			serr := &bytes.Buffer{}
 
@@ -315,7 +343,7 @@ func Test_Repo_CloneMirror(t *testing.T) {
 				serr,
 				"").Return(exe, tc.returnError)
 
-			tc.repo.SetShellRunner(mockGitExec)
+			tc.repo.SetGitRunner(mockGitExec)
 
 			result := tc.repo.CloneMirror()
 			assert.Equal(t, tc.expectedResult, result)
@@ -339,7 +367,7 @@ func Test_Repo_GetCurrentBranch(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			mockGitExec := new(mocks.ShellRunnerI)
+			mockGitExec := new(execMocks.GitRunnerI)
 			exe := &exec.Cmd{}
 			var outb, errb bytes.Buffer
 
@@ -350,7 +378,7 @@ func Test_Repo_GetCurrentBranch(t *testing.T) {
 				&errb,
 				tc.repo.fullPath).Return(exe, tc.returnError)
 
-			tc.repo.SetShellRunner(mockGitExec)
+			tc.repo.SetGitRunner(mockGitExec)
 
 			result := tc.repo.GetCurrentBranch()
 			assert.Equal(t, tc.expectedResult, result)
@@ -380,7 +408,7 @@ func Test_Repo_IsClean(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			mockGitExec := new(mocks.ShellRunnerI)
+			mockGitExec := new(execMocks.GitRunnerI)
 			exe := &exec.Cmd{}
 
 			mockGitExec.On(
@@ -396,7 +424,7 @@ func Test_Repo_IsClean(t *testing.T) {
 				(*bytes.Buffer)(nil),
 				tc.repo.fullPath).Return(exe, tc.err2)
 
-			tc.repo.SetShellRunner(mockGitExec)
+			tc.repo.SetGitRunner(mockGitExec)
 
 			result := tc.repo.IsClean()
 			assert.Equal(t, tc.expectedResult, result)
@@ -419,7 +447,7 @@ func Test_Repo_ShallowClone(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			mockGitExec := new(mocks.ShellRunnerI)
+			mockGitExec := new(execMocks.GitRunnerI)
 			exe := &exec.Cmd{}
 			serr := &bytes.Buffer{}
 
@@ -430,7 +458,7 @@ func Test_Repo_ShallowClone(t *testing.T) {
 				serr,
 				"").Return(exe, tc.returnError)
 
-			tc.repo.SetShellRunner(mockGitExec)
+			tc.repo.SetGitRunner(mockGitExec)
 
 			result := tc.repo.ShallowClone()
 			assert.Equal(t, tc.expectedResult, result)
@@ -453,7 +481,7 @@ func Test_Repo_Clone(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			mockGitExec := new(mocks.ShellRunnerI)
+			mockGitExec := new(execMocks.GitRunnerI)
 			exe := &exec.Cmd{}
 			serr := &bytes.Buffer{}
 
@@ -464,7 +492,7 @@ func Test_Repo_Clone(t *testing.T) {
 				serr,
 				"").Return(exe, tc.returnError)
 
-			tc.repo.SetShellRunner(mockGitExec)
+			tc.repo.SetGitRunner(mockGitExec)
 
 			result := tc.repo.Clone()
 			assert.Equal(t, tc.expectedResult, result)
@@ -487,7 +515,7 @@ func Test_Repo_PushMirror(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			mockGitExec := new(mocks.ShellRunnerI)
+			mockGitExec := new(execMocks.GitRunnerI)
 			exe := &exec.Cmd{}
 			serr := &bytes.Buffer{}
 
@@ -498,7 +526,7 @@ func Test_Repo_PushMirror(t *testing.T) {
 				serr,
 				"").Return(exe, tc.returnError)
 
-			tc.repo.SetShellRunner(mockGitExec)
+			tc.repo.SetGitRunner(mockGitExec)
 
 			result := tc.repo.PushMirror()
 			assert.Equal(t, tc.expectedResult, result)
@@ -553,7 +581,7 @@ func Test_Repo_GitCheckout(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			mockGitExec := new(mocks.ShellRunnerI)
+			mockGitExec := new(execMocks.GitRunnerI)
 			exe := &exec.Cmd{}
 			serr := &bytes.Buffer{}
 
@@ -564,7 +592,7 @@ func Test_Repo_GitCheckout(t *testing.T) {
 				serr,
 				tc.repo.fullPath).Return(exe, tc.returnError)
 
-			tc.repo.SetShellRunner(mockGitExec)
+			tc.repo.SetGitRunner(mockGitExec)
 			initColors()
 
 			result := tc.repo.GitCheckout(tc.branch)

@@ -49,14 +49,16 @@ import (
 	"github.com/isindir/git-get/gitlab"
 )
 
-var stayOnRef bool
-var defaultMainBranch = "master"
-var gitProvider string
-var mirrorVisibilityMode = "private"
-var bitbucketMirrorProject = ""
-var colorHighlight *color.Color
-var colorRef *color.Color
-var shellRunner = new(exec.ShellRunner)
+var (
+	stayOnRef              bool
+	defaultMainBranch      = "master"
+	gitProvider            string
+	mirrorVisibilityMode   = "private"
+	bitbucketMirrorProject = ""
+	colorHighlight         *color.Color
+	colorRef               *color.Color
+	shellRunner            = new(exec.ShellRunner)
+)
 
 // ConfigGenParamsStruct - data structure to store parameters passed via cli flags
 type ConfigGenParamsStruct struct {
@@ -526,22 +528,29 @@ func (repo *Repo) CreateSymlink(symlink string) {
 	}
 
 	// check if directory of symlink exists
-	symnlinkDir := filepath.Dir(symlink)
-	exists, finfo := PathExists(symnlinkDir)
+	symlinkDir := filepath.Dir(symlink)
+	exists, fileInfo := PathExists(symlinkDir)
 	if exists {
 		// create symlink in directory if it does exist
-		if finfo.IsDir() {
-			os.Symlink(repo.fullPath, symlink)
+		if fileInfo.IsDir() {
+			err := os.Symlink(repo.fullPath, symlink)
+			if err != nil {
+				log.Fatalln(err)
+				os.Exit(1)
+			}
 		} else {
 			errorMessage := fmt.Sprintf(
 				"%s: path for symlink '%s' directory '%s' exists, but is not directory - check configuration",
-				repo.sha, symlink, symnlinkDir)
+				repo.sha,
+				symlink,
+				symlinkDir,
+			)
 			repo.status.Error = true
 			log.Error(errorMessage)
 		}
 	} else {
 		// Otherwise ensure directory and create symlink
-		err := os.MkdirAll(symnlinkDir, os.ModePerm)
+		err := os.MkdirAll(symlinkDir, os.ModePerm)
 		if err != nil {
 			log.Fatalln(err)
 			os.Exit(1)
@@ -671,7 +680,7 @@ func (repo *Repo) EnsureBitbucketMirrorExists() {
 }
 
 func getShallowReposFromConfigInParallel(repoList *RepoList, ignoreRepoList []Repo, concurrencyLevel int) {
-	var throttle = make(chan int, concurrencyLevel)
+	throttle := make(chan int, concurrencyLevel)
 
 	var wait sync.WaitGroup
 
@@ -705,7 +714,7 @@ func getShallowReposFromConfigInParallel(repoList *RepoList, ignoreRepoList []Re
 }
 
 func getReposFromConfigInParallel(repoList *RepoList, ignoreRepoList []Repo, concurrencyLevel int) {
-	var throttle = make(chan int, concurrencyLevel)
+	throttle := make(chan int, concurrencyLevel)
 
 	var wait sync.WaitGroup
 
@@ -746,7 +755,7 @@ func mirrorReposFromConfigInParallel(
 	pushMirror bool,
 	mirrorRootURL string,
 ) {
-	var throttle = make(chan int, concurrencyLevel)
+	throttle := make(chan int, concurrencyLevel)
 
 	var wait sync.WaitGroup
 
@@ -907,7 +916,7 @@ func getBitbucketRepositoryGitURL(
 	v map[string]interface{},
 	gitCloudProviderRootURL string,
 	fullName string,
-	GitSchema string,
+	gitSchema string,
 ) string {
 	var bbLinks []bitbucketLinks
 	cloneLinks := v["clone"]
@@ -930,10 +939,10 @@ func getBitbucketRepositoryGitURL(
 
 	for j := 0; j < len(bbLinks); j++ {
 		log.Debugf("%+v", bbLinks[j])
-		if (bbLinks[j].Name == "ssh") && (GitSchema == "ssh") {
+		if (bbLinks[j].Name == "ssh") && (gitSchema == "ssh") {
 			return bbLinks[j].HREF
 		}
-		if (bbLinks[j].Name == "https") && (GitSchema == "https") {
+		if (bbLinks[j].Name == "https") && (gitSchema == "https") {
 			return bbLinks[j].HREF
 		}
 	}
@@ -1050,7 +1059,7 @@ func writeReposToFile(repoSha string, cfgFile string, repoList []Repo) {
 		}
 
 		log.Infof("%s: Writing file '%s'", repoSha, cfgFile)
-		err = ioutil.WriteFile(cfgFile, repoData, 0644)
+		err = ioutil.WriteFile(cfgFile, repoData, 0o644)
 		if err != nil {
 			log.Fatalf("%s: %s", cfgFile, err)
 		}

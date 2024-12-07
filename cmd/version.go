@@ -38,10 +38,9 @@ var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Prints version information",
 	Run: func(cmd *cobra.Command, args []string) {
+		printLongVersion, _ := cmd.Flags().GetBool("long")
 
-		long, _ := cmd.Flags().GetBool("long")
-
-		if long == true {
+		if printLongVersion {
 			fmt.Printf(
 				"%s %s %s %s %s/%s\n",
 				filepath.Base(os.Args[0]),

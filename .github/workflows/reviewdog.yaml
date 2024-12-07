@@ -16,8 +16,8 @@ jobs:
       # https://github.com/reviewdog/action-golangci-lint/releases
       - name: golangci-lint
         uses: reviewdog/action-golangci-lint@v2
-        with:
-          golangci_lint_flags: "--timeout=15m"
+        # with:
+        #   golangci_lint_flags: "--timeout=15m"
 
       # UPDATE_HERE
       # https://github.com/reviewdog/action-actionlint/releases

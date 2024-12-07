@@ -121,7 +121,7 @@ func (gitProvider *GitGetGitlab) auth(repositorySha, baseUrl string) bool {
 }
 
 // ProjectExists checks if project exists and returns boolean if API call is successful
-func (gitProvider *GitGetGitlab) ProjectExists(repositorySha string, baseUrl string, projectName string) bool {
+func (gitProvider *GitGetGitlab) ProjectExists(repositorySha, baseUrl, projectName string) bool {
 	log.Debugf("%s: Checking repository '%s' '%s' existence", repositorySha, baseUrl, projectName)
 	gitProvider.auth(repositorySha, baseUrl)
 

@@ -58,7 +58,7 @@ func GenerateProjectKey(projectName string) string {
 }
 
 // RepositoryExists - checks if bitbucket repository exists
-func RepositoryExists(repoSha string, owner string, repository string) bool {
+func RepositoryExists(repoSha, owner, repository string) bool {
 	git := bitbucketAuth(repoSha)
 
 	repoOptions := &bitbucket.RepositoryOptions{
@@ -76,7 +76,7 @@ func RepositoryExists(repoSha string, owner string, repository string) bool {
 }
 
 // ProjectExists - checks if bitbucket project exists
-func ProjectExists(git *bitbucket.Client, repoSha string, workspace string, project string) bool {
+func ProjectExists(git *bitbucket.Client, repoSha, workspace, project string) bool {
 	opt := &bitbucket.ProjectOptions{
 		Owner: workspace,
 		Name:  project,

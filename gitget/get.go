@@ -49,6 +49,11 @@ import (
 	"github.com/isindir/git-get/gitlab"
 )
 
+const (
+	HTTPS = "https"
+	SSH   = "ssh"
+)
+
 var (
 	stayOnRef              bool
 	defaultMainBranch      = "master"
@@ -893,12 +898,12 @@ func fetchGithubRepos(
 	for repo := 0; repo < len(ghRepoList); repo++ {
 		var gitGetRepoDefinition Repo
 		switch configGenParams.GitSchema {
-		case "ssh":
+		case SSH:
 			gitGetRepoDefinition = Repo{
 				URL: *ghRepoList[repo].SSHURL,
 				Ref: *ghRepoList[repo].DefaultBranch,
 			}
-		case "https":
+		case HTTPS:
 			gitGetRepoDefinition = Repo{
 				URL: *ghRepoList[repo].HTMLURL,
 				Ref: *ghRepoList[repo].DefaultBranch,
@@ -949,10 +954,10 @@ func getBitbucketRepositoryGitURL(
 
 	for j := 0; j < len(bbLinks); j++ {
 		log.Debugf("%+v", bbLinks[j])
-		if (bbLinks[j].Name == "ssh") && (gitSchema == "ssh") {
+		if (bbLinks[j].Name == SSH) && (gitSchema == SSH) {
 			return bbLinks[j].HREF
 		}
-		if (bbLinks[j].Name == "https") && (gitSchema == "https") {
+		if (bbLinks[j].Name == HTTPS) && (gitSchema == HTTPS) {
 			return bbLinks[j].HREF
 		}
 	}
@@ -1028,12 +1033,12 @@ func fetchGitlabRepos(
 
 		var gitGetRepoDefinition Repo
 		switch configGenParams.GitSchema {
-		case "ssh":
+		case SSH:
 			gitGetRepoDefinition = Repo{
 				URL: glRepoList[repo].SSHURLToRepo,
 				Ref: glRepoList[repo].DefaultBranch,
 			}
-		case "https":
+		case HTTPS:
 			gitGetRepoDefinition = Repo{
 				URL: glRepoList[repo].HTTPURLToRepo,
 				Ref: glRepoList[repo].DefaultBranch,

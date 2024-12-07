@@ -114,15 +114,15 @@ func (gitProvider *GitGetGitlab) ProjectExists(repositorySha string, baseUrl str
 
 	log.Debugf("%s: project: '%+v'", repositorySha, prj)
 
-	if err != nil {
-		return false
-	}
-
-	return true
+	return err == nil
 }
 
 // GetProjectNamespace - return Project Namespace and namespace full path
-func (gitProvider *GitGetGitlab) GetProjectNamespace(repositorySha string, baseUrl string, projectNameFullPath string) (*gitlab.Namespace, string) {
+func (gitProvider *GitGetGitlab) GetProjectNamespace(
+	repositorySha string,
+	baseUrl string,
+	projectNameFullPath string,
+) (*gitlab.Namespace, string) {
 	log.Debugf("%s: Getting Project FullPath Namespace '%s'", repositorySha, projectNameFullPath)
 	gitProvider.auth(repositorySha, baseUrl)
 
@@ -181,7 +181,7 @@ func (gitProvider *GitGetGitlab) CreateProject(
 func (gitProvider *GitGetGitlab) getGroupID(repoSha string, git *gitlab.Client, groupName string) (int, string, error) {
 	// Fetch group ID needed for other operations
 	_, shortName := filepath.Split(groupName)
-	//escapedGroupName := url.QueryEscape(groupName)
+	// escapedGroupName := url.QueryEscape(groupName)
 	escapedGroupName := url.QueryEscape(shortName)
 
 	foundGroups, _, err := git.Groups.SearchGroup(escapedGroupName)

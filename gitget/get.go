@@ -306,7 +306,12 @@ func (repo *Repo) CloneMirror() bool {
 func (repo *Repo) PushMirror() bool {
 	log.Infof("%s: Push repository '%s' as a mirror '%s'", repo.sha, repo.URL, repo.mirrorURL)
 	var serr bytes.Buffer
-	_, err := (*repo.executor).ExecGitCommand([]string{"push", "--mirror", repo.mirrorURL}, nil, &serr, repo.fullPath)
+	_, err := (*repo.executor).ExecGitCommand(
+		[]string{"push", "--mirror", repo.mirrorURL},
+		nil,
+		&serr,
+		repo.fullPath,
+	)
 	if err != nil {
 		log.Errorf("%s: %v %v", repo.sha, err, serr.String())
 		return false
@@ -378,7 +383,12 @@ func (repo *Repo) IsClean() bool {
 
 func (repo *Repo) IsCurrentBranchRef() bool {
 	var outb, errb bytes.Buffer
-	_, err := (*repo.executor).ExecGitCommand([]string{"rev-parse", "--abbrev-ref", "HEAD"}, &outb, &errb, repo.fullPath)
+	_, err := (*repo.executor).ExecGitCommand(
+		[]string{"rev-parse", "--abbrev-ref", "HEAD"},
+		&outb,
+		&errb,
+		repo.fullPath,
+	)
 	if err != nil {
 		log.Errorf("%s: Error when checking branch %v", repo.sha, err)
 	}
@@ -387,7 +397,12 @@ func (repo *Repo) IsCurrentBranchRef() bool {
 
 func (repo *Repo) GetCurrentBranch() string {
 	var outb, errb bytes.Buffer
-	_, err := (*repo.executor).ExecGitCommand([]string{"rev-parse", "--abbrev-ref", "HEAD"}, &outb, &errb, repo.fullPath)
+	_, err := (*repo.executor).ExecGitCommand(
+		[]string{"rev-parse", "--abbrev-ref", "HEAD"},
+		&outb,
+		&errb,
+		repo.fullPath,
+	)
 	if err != nil {
 		log.Errorf("%s: Error when getting branch %v", repo.sha, err)
 		return ""
@@ -555,7 +570,11 @@ func (repo *Repo) CreateSymlink(symlink string) {
 			log.Fatalln(err)
 			os.Exit(1)
 		}
-		os.Symlink(repo.fullPath, symlink)
+		err = os.Symlink(repo.fullPath, symlink)
+		if err != nil {
+			log.Fatalln(err)
+			os.Exit(1)
+		}
 	}
 }
 
@@ -864,7 +883,7 @@ func fetchGithubRepos(
 	ignoreRepoList []Repo,
 	gitCloudProviderRootURL string,
 	targetClonePath string,
-	configGenParams ConfigGenParamsStruct,
+	configGenParams *ConfigGenParamsStruct,
 ) []Repo {
 	var repoList []Repo
 	ctx := context.Background()
@@ -956,7 +975,7 @@ func fetchBitbucketRepos(
 	ignoreRepoList []Repo,
 	gitCloudProviderRootURL string,
 	targetClonePath string,
-	configGenParams ConfigGenParamsStruct,
+	configGenParams *ConfigGenParamsStruct,
 ) []Repo {
 	var repoList []Repo
 
@@ -993,7 +1012,7 @@ func fetchGitlabRepos(
 	ignoreRepoList []Repo,
 	gitCloudProviderRootURL string,
 	targetClonePath string,
-	configGenParams ConfigGenParamsStruct,
+	configGenParams *ConfigGenParamsStruct,
 ) []Repo {
 	var repoList []Repo
 
@@ -1137,11 +1156,29 @@ func GenerateGitfileConfig(
 
 	switch gitCloudProvider {
 	case "github":
-		repoList = fetchGithubRepos(repoSha, ignoreRepoList, gitCloudProviderRootURL, targetClonePath, configGenParams)
+		repoList = fetchGithubRepos(
+			repoSha,
+			ignoreRepoList,
+			gitCloudProviderRootURL,
+			targetClonePath,
+			&configGenParams,
+		)
 	case "gitlab":
-		repoList = fetchGitlabRepos(repoSha, ignoreRepoList, gitCloudProviderRootURL, targetClonePath, configGenParams)
+		repoList = fetchGitlabRepos(
+			repoSha,
+			ignoreRepoList,
+			gitCloudProviderRootURL,
+			targetClonePath,
+			&configGenParams,
+		)
 	case "bitbucket":
-		repoList = fetchBitbucketRepos(repoSha, ignoreRepoList, gitCloudProviderRootURL, targetClonePath, configGenParams)
+		repoList = fetchBitbucketRepos(
+			repoSha,
+			ignoreRepoList,
+			gitCloudProviderRootURL,
+			targetClonePath,
+			&configGenParams,
+		)
 	default:
 		log.Fatalf("%s: Error: unknown '%s' git mirror provider", repoSha, gitCloudProvider)
 		os.Exit(1)

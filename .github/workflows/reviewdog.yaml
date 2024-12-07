@@ -4,7 +4,7 @@ on: [pull_request]
 jobs:
   reviewdog:
     name: linters
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
       # UPDATE_HERE
       # https://github.com/actions/checkout/releases

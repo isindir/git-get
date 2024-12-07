@@ -466,7 +466,7 @@ func (repo *Repo) GitPull() {
 	} else {
 		log.Debugf(
 			"%s: Skip pulling upstream changes for '%s' which is not a branch",
-			repo.sha, colorRef.Sprintf(repo.Ref))
+			repo.sha, colorRef.Sprintf("%s", repo.Ref))
 	}
 }
 
@@ -519,7 +519,7 @@ func (repo *Repo) ProcessRepoBasedOnCurrentBranch() {
 		if !stayOnRef {
 			repo.GitCheckout(currentBranch)
 		} else {
-			log.Debugf("%s: Stay on ref branch '%s'", repo.sha, colorRef.Sprintf(repo.Ref))
+			log.Debugf("%s: Stay on ref branch '%s'", repo.sha, colorRef.Sprintf("%s", repo.Ref))
 		}
 	}
 }
@@ -643,7 +643,7 @@ func (repo *Repo) EnsureGitlabMirrorExists() {
 	}
 }
 
-func DecomposeGitURL(gitURL string) (string, string, string) {
+func DecomposeGitURL(gitURL string) (baseURL, fullName, shortName string) {
 	// input: git@abc.com:b/c/d.git or https://abc.com/b/c/d.git -> abc.com/b/c/d
 	// remove unwanted parts of the git repo url
 	re := regexp.MustCompile(`.git$|^https://|^git@`)
@@ -653,10 +653,10 @@ func DecomposeGitURL(gitURL string) (string, string, string) {
 
 	// baseURL and longPath for checking repo existence ( abc.com/b/c/d -> abc.com , b/c/d )
 	urlParts := strings.SplitN(url, "/", 2)
-	baseURL, fullName := urlParts[0], urlParts[1]
+	baseURL, fullName = urlParts[0], urlParts[1]
 
 	// baseURL and project Name for creating missing repository ( abc.com/b/c/d -> abc.com/b/c , d)
-	_, shortName := filepath.Split(url)
+	_, shortName = filepath.Split(url)
 
 	// ( abc.com/b/c/d -> abc.com, b/c/d, d )
 	return baseURL, fullName, shortName

@@ -69,7 +69,7 @@ jobs:
         run: |
           git tag "$(svu next)"
           git push --tags
-          goreleaser release --rm-dist
+          goreleaser release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}

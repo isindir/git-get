@@ -54,7 +54,8 @@ linters:
 linters-settings:
   gosec:
     excludes:
-      - G402
+      - G401
+      - G505
   gocritic:
     enabled-checks:
       # Diagnostic

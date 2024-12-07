@@ -62,7 +62,7 @@ git-get config-gen -f Gitfile -p "github" -u "git@github.com:AcmeOrg" -t AcmeOrg
 			gitCloudProviderRootURL,
 			gitCloudProvider,
 			targetClonePath,
-			configGenParams,
+			&configGenParams,
 		)
 	},
 }

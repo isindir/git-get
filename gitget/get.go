@@ -237,7 +237,7 @@ func (repo *Repo) PrepareForGet() {
 }
 
 // PrepareForMirror - set repository structure fields for mirror operation
-func (repo *Repo) PrepareForMirror(pathPrefix string, mirrorRootURL string) {
+func (repo *Repo) PrepareForMirror(pathPrefix, mirrorRootURL string) {
 	repo.SetShellRunner(shellRunner)
 	repo.SetTempRepoPathForMirror(pathPrefix)
 	repo.SetDefaultRef()
@@ -271,8 +271,8 @@ func (repo *Repo) SetRepoFullPath() {
 }
 
 // PathExists returns `true` if given `path` passed as sting exists, otherwise returns false.
-func PathExists(path string) (bool, os.FileInfo) {
-	finfo, err := os.Stat(path)
+func PathExists(pathToCheck string) (bool, os.FileInfo) {
+	finfo, err := os.Stat(pathToCheck)
 
 	if os.IsNotExist(err) {
 		return false, finfo

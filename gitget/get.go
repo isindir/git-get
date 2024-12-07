@@ -1134,7 +1134,7 @@ func GenerateGitfileConfig(
 	gitCloudProviderRootURL string,
 	gitCloudProvider string,
 	targetClonePath string,
-	configGenParams ConfigGenParamsStruct,
+	configGenParams *ConfigGenParamsStruct,
 ) {
 	initColors()
 	repoSha := generateSha(gitCloudProviderRootURL)
@@ -1152,7 +1152,7 @@ func GenerateGitfileConfig(
 			ignoreRepoList,
 			gitCloudProviderRootURL,
 			targetClonePath,
-			&configGenParams,
+			configGenParams,
 		)
 	case "gitlab":
 		repoList = fetchGitlabRepos(
@@ -1160,7 +1160,7 @@ func GenerateGitfileConfig(
 			ignoreRepoList,
 			gitCloudProviderRootURL,
 			targetClonePath,
-			&configGenParams,
+			configGenParams,
 		)
 	case "bitbucket":
 		repoList = fetchBitbucketRepos(
@@ -1168,7 +1168,7 @@ func GenerateGitfileConfig(
 			ignoreRepoList,
 			gitCloudProviderRootURL,
 			targetClonePath,
-			&configGenParams,
+			configGenParams,
 		)
 	default:
 		log.Fatalf("%s: Error: unknown '%s' git mirror provider", repoSha, gitCloudProvider)

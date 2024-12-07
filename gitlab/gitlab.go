@@ -108,7 +108,7 @@ func (gitProvider *GitGetGitlab) Init() bool {
 	return tokenFound
 }
 
-func (gitProvider *GitGetGitlab) auth(repositorySha string, baseUrl string) bool {
+func (gitProvider *GitGetGitlab) auth(repositorySha, baseUrl string) bool {
 	clientOptions := gitlab.WithBaseURL("https://" + baseUrl)
 	var err error
 	gitProvider.client, err = gitlab.NewClient(gitProvider.token, clientOptions)

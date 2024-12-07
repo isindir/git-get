@@ -66,7 +66,6 @@ func RepositoryExists(repoSha string, owner string, repository string) bool {
 		RepoSlug: repository,
 	}
 	repo, err := git.Repositories.Repository.Get(repoOptions)
-
 	if err != nil {
 		log.Debugf("%s: Error fetching repository '%s/%s': %+v", repoSha, owner, repository, err)
 		return false
@@ -85,7 +84,6 @@ func ProjectExists(git *bitbucket.Client, repoSha string, workspace string, proj
 	log.Debugf("%s: Parameter ProjectOptions '%+v'", repoSha, opt)
 
 	prj, err := git.Workspaces.GetProject(opt)
-
 	if err != nil {
 		log.Debugf("%s: Error fetching project '%s' in workspace '%s': %+v\n", repoSha, project, workspace, err)
 		return false
@@ -125,7 +123,6 @@ func CreateRepository(repoSha, repository, mirrorVisibilityMode, sourceURL, proj
 	log.Debugf("%s: Creating repository with parameters: '%+v'", repoSha, repoOptions)
 
 	resultingRepository, err := git.Repositories.Repository.Create(repoOptions)
-
 	if err != nil {
 		log.Fatalf("%s: Error - while trying to create github repository '%s': '%s'", repoSha, repository, err)
 		os.Exit(1)
@@ -156,7 +153,6 @@ func FetchOwnerRepos(repoSha, owner, bitbucketRole string) []bitbucket.Repositor
 		reposToReutrn = repos.Items
 	} else {
 		log.Errorf("%s: Can't fetch repository list for '%s' '%+v'", repoSha, owner, err)
-
 	}
 
 	for i := 0; repos != nil && i < len(repos.Items) && err == nil; i++ {

@@ -6,6 +6,6 @@ goreleaser 2.9.0
 # https://github.com/vektra/mockery/releases
 mockery 2.50.0
 # https://github.com/caarlos0/svu/releases
-svu 3.2.2
+svu 3.2.3
 # https://github.com/golangci/golangci-lint/releases
 golangci-lint 2.1.6

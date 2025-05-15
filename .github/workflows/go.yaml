@@ -71,7 +71,7 @@ jobs:
       - name: Release
         shell: bash
         run: |
-          git tag "$(svu next)"
+          git tag "$(svu next --always)"
           git push --tags
           goreleaser release --clean
         env:

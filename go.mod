@@ -17,8 +17,8 @@ require (
 	github.com/spf13/cobra v1.10.2
 	// https://github.com/stretchr/testify/releases
 	github.com/stretchr/testify v1.11.1
-	// https://github.com/xanzy/go-gitlab/releases
-	github.com/xanzy/go-gitlab v0.115.0
+	// https://gitlab.com/gitlab-org/api/client-go/-/releases
+	gitlab.com/gitlab-org/api/client-go v1.11.0
 	// https://pkg.go.dev/golang.org/x/net
 	golang.org/x/net v0.48.0 // indirect
 	// https://pkg.go.dev/golang.org/x/oauth2
@@ -29,9 +29,9 @@ require (
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/google/go-querystring v1.1.0 // indirect
+	github.com/google/go-querystring v1.2.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
-	github.com/hashicorp/go-retryablehttp v0.7.7 // indirect
+	github.com/hashicorp/go-retryablehttp v0.7.8 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
@@ -41,5 +41,5 @@ require (
 	github.com/spf13/pflag v1.0.9 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
 	golang.org/x/sys v0.39.0 // indirect
-	golang.org/x/time v0.3.0 // indirect
+	golang.org/x/time v0.14.0 // indirect
 )

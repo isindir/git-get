@@ -1,5 +1,5 @@
 /*
-Copyright © 2021-2022 Eriks Zelenka <isindir@users.sourceforge.net>
+Copyright © 2021-2026 Eriks Zelenka <isindir@users.sourceforge.net>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -33,20 +33,37 @@ import (
 	bitbucket "github.com/ktrysmt/go-bitbucket"
 )
 
-func bitbucketAuth(repoSha string) *bitbucket.Client {
-	username, usernameFound := os.LookupEnv("BITBUCKET_USERNAME")
+type GitGetBitbucket struct {
+	username string
+	token    string
+}
+
+type GitGetBitbucketI interface {
+	Init() bool
+	RepositoryExists(repoSha, owner, repository string) bool
+	CreateRepository(repoSha, repository, mirrorVisibilityMode, sourceURL, projectName string) *bitbucket.Repository
+	FetchOwnerRepos(repoSha, owner, bitbucketRole string) []bitbucket.Repository
+}
+
+func (gitProvider *GitGetBitbucket) Init() bool {
+	var usernameFound, tokenFound bool
+	gitProvider.username, usernameFound = os.LookupEnv("BITBUCKET_USERNAME")
 	if !usernameFound {
-		log.Fatalf("%s: Error - environment variable BITBUCKET_TOKEN not found", repoSha)
+		log.Fatal("Error - environment variable BITBUCKET_USERNAME not found")
 		os.Exit(1)
 	}
 
-	token, tokenFound := os.LookupEnv("BITBUCKET_TOKEN")
+	gitProvider.token, tokenFound = os.LookupEnv("BITBUCKET_TOKEN")
 	if !tokenFound {
-		log.Fatalf("%s: Error - environment variable BITBUCKET_TOKEN not found", repoSha)
+		log.Fatal("Error - environment variable BITBUCKET_TOKEN not found")
 		os.Exit(1)
 	}
 
-	git, err := bitbucket.NewBasicAuth(username, token)
+	return usernameFound && tokenFound
+}
+
+func (gitProvider *GitGetBitbucket) auth(repoSha string) *bitbucket.Client {
+	git, err := bitbucket.NewBasicAuth(gitProvider.username, gitProvider.token)
 	if err != nil {
 		log.Fatalf("%s: Error - authentication failed", repoSha)
 		os.Exit(1)
@@ -61,9 +78,9 @@ func GenerateProjectKey(projectName string) string {
 	return strings.ToUpper(re.ReplaceAllString(projectName, ""))
 }
 
-// RepositoryExists - checks if bitbucket repository exists
-func RepositoryExists(repoSha, owner, repository string) bool {
-	git := bitbucketAuth(repoSha)
+// RepositoryExists - checks if bitbucket repository exists (method)
+func (gitProvider *GitGetBitbucket) RepositoryExists(repoSha, owner, repository string) bool {
+	git := gitProvider.auth(repoSha)
 
 	repoOptions := &bitbucket.RepositoryOptions{
 		Owner:    owner,
@@ -77,6 +94,13 @@ func RepositoryExists(repoSha, owner, repository string) bool {
 
 	log.Debugf("%s: Fetched repository '%+v'", repoSha, repo)
 	return true
+}
+
+// RepositoryExists - checks if bitbucket repository exists (package function for backward compatibility)
+func RepositoryExists(repoSha, owner, repository string) bool {
+	gitProvider := &GitGetBitbucket{}
+	gitProvider.Init()
+	return gitProvider.RepositoryExists(repoSha, owner, repository)
 }
 
 // ProjectExists - checks if bitbucket project exists
@@ -97,9 +121,9 @@ func ProjectExists(git *bitbucket.Client, repoSha, workspace, project string) bo
 	return true
 }
 
-// CreateRepository - create bitbucket repository
-func CreateRepository(repoSha, repository, mirrorVisibilityMode, sourceURL, projectName string) *bitbucket.Repository {
-	git := bitbucketAuth(repoSha)
+// CreateRepository - create bitbucket repository (method)
+func (gitProvider *GitGetBitbucket) CreateRepository(repoSha, repository, mirrorVisibilityMode, sourceURL, projectName string) *bitbucket.Repository {
+	git := gitProvider.auth(repoSha)
 
 	repoNameParts := strings.SplitN(repository, "/", 2)
 	owner, repoSlug := repoNameParts[0], repoNameParts[1]
@@ -136,12 +160,19 @@ func CreateRepository(repoSha, repository, mirrorVisibilityMode, sourceURL, proj
 	return resultingRepository
 }
 
-// FetchOwnerRepos - fetch owner repositories via API
-func FetchOwnerRepos(repoSha, owner, bitbucketRole string) []bitbucket.Repository {
+// CreateRepository - create bitbucket repository (package function for backward compatibility)
+func CreateRepository(repoSha, repository, mirrorVisibilityMode, sourceURL, projectName string) *bitbucket.Repository {
+	gitProvider := &GitGetBitbucket{}
+	gitProvider.Init()
+	return gitProvider.CreateRepository(repoSha, repository, mirrorVisibilityMode, sourceURL, projectName)
+}
+
+// FetchOwnerRepos - fetch owner repositories via API (method)
+func (gitProvider *GitGetBitbucket) FetchOwnerRepos(repoSha, owner, bitbucketRole string) []bitbucket.Repository {
 	log.Debugf("%s: Specified owner: '%s'", repoSha, owner)
 	var reposToReutrn []bitbucket.Repository
 
-	git := bitbucketAuth(repoSha)
+	git := gitProvider.auth(repoSha)
 
 	opts := &bitbucket.RepositoriesOptions{
 		Owner: owner,
@@ -164,4 +195,11 @@ func FetchOwnerRepos(repoSha, owner, bitbucketRole string) []bitbucket.Repositor
 	}
 
 	return reposToReutrn
+}
+
+// FetchOwnerRepos - fetch owner repositories via API (package function for backward compatibility)
+func FetchOwnerRepos(repoSha, owner, bitbucketRole string) []bitbucket.Repository {
+	gitProvider := &GitGetBitbucket{}
+	gitProvider.Init()
+	return gitProvider.FetchOwnerRepos(repoSha, owner, bitbucketRole)
 }

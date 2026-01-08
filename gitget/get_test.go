@@ -19,6 +19,8 @@ var repoUrls = map[string]string{
 	"git@github.com:ansible/ansible.git":                   "ansible",
 	"git@gitlab.com:devops/deploy/deployment-jobs.git":     "deployment-jobs",
 	"https://gitlab.com/devops/deploy/deployment-jobs.git": "deployment-jobs",
+	"https://bitbucket.org/myteam/myrepo.git":              "myrepo",
+	"git@bitbucket.org:myteam/myrepo.git":                  "myrepo",
 }
 
 func Test_SetDefaultRef(t *testing.T) {
@@ -580,4 +582,107 @@ func Test_Repo_GitCheckout(t *testing.T) {
 			assert.Equal(t, tc.expectedNotOnRefBranch, tc.repo.status.NotOnRefBranch)
 		})
 	}
+}
+
+func Test_IgnoreThisRepo(t *testing.T) {
+	type testCase struct {
+		name           string
+		repoURL        string
+		ignoreList     []Repo
+		expectedResult bool
+	}
+
+	testCases := []testCase{
+		{
+			name:           "repo not in ignore list",
+			repoURL:        "https://github.com/user/repo.git",
+			ignoreList:     []Repo{{URL: "https://github.com/other/repo.git"}},
+			expectedResult: false,
+		},
+		{
+			name:           "repo in ignore list",
+			repoURL:        "https://github.com/user/repo.git",
+			ignoreList:     []Repo{{URL: "https://github.com/user/repo.git"}},
+			expectedResult: true,
+		},
+		{
+			name:           "empty ignore list",
+			repoURL:        "https://github.com/user/repo.git",
+			ignoreList:     []Repo{},
+			expectedResult: false,
+		},
+		{
+			name:           "multiple repos in ignore list",
+			repoURL:        "https://github.com/user/repo.git",
+			ignoreList:     []Repo{{URL: "https://github.com/other/repo.git"}, {URL: "https://github.com/user/repo.git"}},
+			expectedResult: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result := ignoreThisRepo(tc.repoURL, tc.ignoreList)
+			assert.Equal(t, tc.expectedResult, result)
+		})
+	}
+}
+
+func Test_Repo_SetShellRunner(t *testing.T) {
+	repo := Repo{}
+	mockRunner := new(mocks.ShellRunnerI)
+
+	repo.SetShellRunner(mockRunner)
+	assert.NotNil(t, repo.executor)
+}
+
+func Test_Repo_PrepareForGet(t *testing.T) {
+	repo := Repo{
+		URL: "https://github.com/user/repo.git",
+		Ref: "main",
+	}
+
+	repo.PrepareForGet()
+
+	assert.Equal(t, "repo", repo.AltName)
+	assert.NotEmpty(t, repo.sha)
+	assert.NotEmpty(t, repo.fullPath)
+}
+
+func Test_Repo_IsCurrentBranchRef(t *testing.T) {
+	// This test is complex to mock because IsCurrentBranchRef creates new buffers internally
+	// and the mock library compares buffer instances, not just their content
+	// Skipping for now - this would be better tested in integration tests
+	t.Skip("Requires complex buffer mocking - better suited for integration tests")
+}
+
+func Test_Repo_ChoosePathPrefix(t *testing.T) {
+	// Test with empty prefix - should use current working directory
+	t.Run("use current directory when prefix is empty", func(t *testing.T) {
+		repo := Repo{Path: "/default/path"}
+		result := repo.ChoosePathPrefix("")
+		// Should return current working directory, not the repo path
+		assert.NotEmpty(t, result)
+	})
+
+	// Test with existing directory
+	t.Run("use provided path prefix when it exists", func(t *testing.T) {
+		repo := Repo{Path: "/default/path"}
+		// Use current directory as it's guaranteed to exist
+		result := repo.ChoosePathPrefix(".")
+		assert.Equal(t, ".", result)
+	})
+
+	// Note: Testing with non-existent path would cause os.Exit(1)
+	// which is not suitable for unit tests
+}
+
+func Test_InitColors(t *testing.T) {
+	// Test that initColors doesn't panic
+	assert.NotPanics(t, func() {
+		initColors()
+	})
+
+	// Verify colors are initialized
+	assert.NotNil(t, colorHighlight)
+	assert.NotNil(t, colorRef)
 }

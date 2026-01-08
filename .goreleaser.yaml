@@ -17,9 +17,8 @@ builds:
   - darwin
   ldflags:
   - "-s -w -X github.com/isindir/git-get/version.Version=v{{.Version}} -X github.com/isindir/git-get/version.Commit={{.ShortCommit}} -X github.com/isindir/git-get/version.Time={{.CommitDate}}"
-brews:
-- name: git-get
-  repository:
+homebrew_casks:
+- repository:
     owner: isindir
     name: homebrew-git-get
     branch: master
@@ -27,13 +26,11 @@ brews:
   commit_author:
     name: Eriks Zelenka
     email: isindir@users.sf.net
-  commit_msg_template: "Brew formula update for {{ .ProjectName }} version {{ .Tag }} - {{.ShortCommit}}"
-  directory: Formula
+  commit_msg_template: "Brew cask update for {{ .ProjectName }} version {{ .Tag }} - {{.ShortCommit}}"
+  directory: Casks
   homepage: "https://github.com/isindir/git-get"
   license: "MIT"
   description: "Tool to clone/fetch project repositories an-mass using Gitfile configuration file. git-get can also generate Gitfile from github, gitlab or bitbucket, to have all repositories user has access to."
-  test: |
-    system "#{bin}/git-get", "version", "--long"
 release:
   prerelease: auto
 

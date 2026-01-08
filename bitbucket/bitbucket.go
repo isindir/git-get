@@ -46,7 +46,11 @@ func bitbucketAuth(repoSha string) *bitbucket.Client {
 		os.Exit(1)
 	}
 
-	git := bitbucket.NewBasicAuth(username, token)
+	git, err := bitbucket.NewBasicAuth(username, token)
+	if err != nil {
+		log.Fatalf("%s: Error - authentication failed", repoSha)
+		os.Exit(1)
+	}
 
 	return git
 }

@@ -24,12 +24,12 @@ package github
 
 // UPDATE_HERE
 import (
+	"context"
 	"fmt"
 	"os"
 
-	"github.com/google/go-github/v72/github"
+	"github.com/google/go-github/v81/github"
 	log "github.com/sirupsen/logrus"
-	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
 )
 
@@ -74,9 +74,9 @@ func CreateRepository(
 	}
 
 	repoDef := &github.Repository{
-		Name:        github.String(repository),
-		Private:     github.Bool(isPrivate),
-		Description: github.String(fmt.Sprintf("Mirror of the '%s'", sourceURL)),
+		Name:        github.Ptr(repository),
+		Private:     github.Ptr(isPrivate),
+		Description: github.Ptr(fmt.Sprintf("Mirror of the '%s'", sourceURL)),
 	}
 
 	resultingRepository, _, err := git.Repositories.Create(ctx, "", repoDef)
@@ -138,7 +138,7 @@ func fetchUserRepos(
 ) []*github.Repository {
 	var repoList []*github.Repository
 
-	opts := &github.RepositoryListOptions{
+	opts := &github.RepositoryListByAuthenticatedUserOptions{
 		// Default: all. Can be one of all, public, or private via CLI flags
 		Visibility: githubVisibility,
 		// Comma-separated list of values. Can include: owner, collaborator, or organization_member
@@ -151,7 +151,7 @@ func fetchUserRepos(
 	}
 
 	for {
-		repos, res, err := git.Repositories.List(ctx, "", opts)
+		repos, res, err := git.Repositories.ListByAuthenticatedUser(ctx, opts)
 		log.Debugf(
 			"%s: NextPage/PrevPage/FirstPage/LastPage '%d/%d/%d/%d'\n",
 			repoSha, res.NextPage, res.PrevPage, res.FirstPage, res.LastPage)

@@ -9,7 +9,7 @@
 
 ```bash
 $ brew tap isindir/git-get
-$ brew install git-get
+$ brew install isindir/git-get/git-get
 ```
 
 ## Configuration file `Gitfile`

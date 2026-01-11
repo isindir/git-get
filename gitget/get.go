@@ -1,5 +1,5 @@
 /*
-Copyright © 2020-2021 Eriks Zelenka <isindir@users.sourceforge.net>
+Copyright © 2020-2026 Eriks Zelenka <isindir@users.sourceforge.net>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -25,10 +25,10 @@ package gitget
 
 import (
 	"bytes"
+	"context"
 	"crypto/sha1"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -36,8 +36,6 @@ import (
 	"strings"
 	"sync"
 	"text/tabwriter"
-
-	"golang.org/x/net/context"
 
 	"github.com/fatih/color"
 	log "github.com/sirupsen/logrus"
@@ -775,7 +773,7 @@ func mirrorReposFromConfigInParallel(
 	var wait sync.WaitGroup
 
 	// make temp directory - preserve its name
-	tempDir, err := ioutil.TempDir("", "gitgetmirror")
+	tempDir, err := os.MkdirTemp("", "gitgetmirror")
 	if err != nil {
 		log.Fatalf("Error: %s, while creating temporary directory", err)
 		os.Exit(1)
@@ -1092,7 +1090,7 @@ func GetConfigRepoList(cfgFiles []string) *RepoList {
 	var mergedRepoList []Repo
 	for _, cfgFile := range cfgFiles {
 		var singleRepoList []Repo
-		yamlFile, err := ioutil.ReadFile(cfgFile)
+		yamlFile, err := os.ReadFile(cfgFile)
 		if err != nil {
 			log.Fatalf("%s: %s", cfgFile, err)
 		}
@@ -1115,7 +1113,7 @@ func GetIgnoreRepoList(ignoreFiles []string) []Repo {
 
 	for _, ignoreFile := range ignoreFiles {
 		var singleFileIgnoreRepoList []Repo
-		yamlIgnoreFile, err := ioutil.ReadFile(ignoreFile)
+		yamlIgnoreFile, err := os.ReadFile(ignoreFile)
 		if err != nil {
 			log.Warnf("Ignoring missing file: %s", err)
 			return ignoreRepoList

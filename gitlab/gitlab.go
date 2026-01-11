@@ -1,5 +1,5 @@
 /*
-Copyright © 2021-2022 Eriks Zelenka <isindir@users.sourceforge.net>
+Copyright © 2021-2026 Eriks Zelenka <isindir@users.sourceforge.net>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -30,7 +30,7 @@ import (
 	"strings"
 
 	log "github.com/sirupsen/logrus"
-	gitlab "github.com/xanzy/go-gitlab"
+	gitlab "gitlab.com/gitlab-org/api/client-go"
 )
 
 type GitGetGitlab struct {
@@ -59,13 +59,13 @@ type GitGetGitlabI interface {
 		repoSha string,
 		git *gitlab.Client,
 		groupName string,
-	) (int, string, error)
+	) (int64, string, error)
 
 	CreateProject(
 		repositorySha string,
 		baseUrl string,
 		projectName string,
-		namespaceID int,
+		namespaceID int64,
 		mirrorVisibilityMode string,
 		sourceURL string,
 	) *gitlab.Project
@@ -73,7 +73,7 @@ type GitGetGitlabI interface {
 	processSubgroups(
 		repoSha string,
 		git *gitlab.Client,
-		groupID int,
+		groupID int64,
 		groupName string,
 		glRepoList []*gitlab.Project,
 		gitlabOwned bool,
@@ -83,7 +83,7 @@ type GitGetGitlabI interface {
 	appendGroupsProjects(
 		repoSha string,
 		git *gitlab.Client,
-		groupID int,
+		groupID int64,
 		groupName string,
 		glRepoList []*gitlab.Project,
 		gitlabOwned bool,
@@ -161,45 +161,29 @@ func (gitProvider *GitGetGitlab) GetProjectNamespace(
 	return namespaceObject, namespaceFullPath
 }
 
-func boolPtr(value bool) *bool {
-	return &value
-}
-
-func stringPtr(value string) *string {
-	return &value
-}
-
-func intPtr(value int) *int {
-	return &value
-}
-
-func gitlabVisibilityValuePtr(value gitlab.VisibilityValue) *gitlab.VisibilityValue {
-	return &value
-}
-
 // CreateProject - Create new code repository
 func (gitProvider *GitGetGitlab) CreateProject(
 	repositorySha string,
 	baseUrl string,
 	projectName string,
-	namespaceID int,
+	namespaceID int64,
 	mirrorVisibilityMode string,
 	sourceURL string,
 ) *gitlab.Project {
 	gitProvider.auth(repositorySha, baseUrl)
 
 	p := &gitlab.CreateProjectOptions{
-		Name: stringPtr(projectName),
-		Description: stringPtr(
+		Name: gitlab.Ptr(projectName),
+		Description: gitlab.Ptr(
 			fmt.Sprintf("Mirror of the '%s'", sourceURL),
 		),
-		MergeRequestsEnabled: boolPtr(true),
-		Visibility: gitlabVisibilityValuePtr(
+		MergeRequestsEnabled: gitlab.Ptr(true),
+		Visibility: gitlab.Ptr(
 			gitlab.VisibilityValue(mirrorVisibilityMode),
 		),
 	}
 	if namespaceID != 0 {
-		p.NamespaceID = intPtr(namespaceID)
+		p.NamespaceID = gitlab.Ptr(namespaceID)
 	}
 
 	project, _, err := gitProvider.client.Projects.CreateProject(p)
@@ -220,7 +204,7 @@ func (gitProvider *GitGetGitlab) getGroupID(
 	repoSha string,
 	git *gitlab.Client,
 	groupName string,
-) (foundGroupId int, foundGroupFullName string, err error) {
+) (foundGroupId int64, foundGroupFullName string, err error) {
 	// Fetch group ID needed for other operations
 	_, shortName := filepath.Split(groupName)
 	escapedGroupName := url.QueryEscape(shortName)
@@ -248,7 +232,7 @@ func (gitProvider *GitGetGitlab) getGroupID(
 func (gitProvider *GitGetGitlab) processSubgroups(
 	repoSha string,
 	git *gitlab.Client,
-	groupID int,
+	groupID int64,
 	groupName string,
 	glRepoList []*gitlab.Project,
 	gitlabOwned bool,
@@ -264,9 +248,9 @@ func (gitProvider *GitGetGitlab) processSubgroups(
 
 	subGrpOpt := &gitlab.ListSubGroupsOptions{
 		ListOptions:  lstOpts,
-		AllAvailable: boolPtr(true),
-		TopLevelOnly: boolPtr(false),
-		Owned:        boolPtr(gitlabOwned),
+		AllAvailable: gitlab.Ptr(true),
+		TopLevelOnly: gitlab.Ptr(false),
+		Owned:        gitlab.Ptr(gitlabOwned),
 	}
 	switch gitlabMinAccessLevel {
 	case "min":
@@ -345,7 +329,7 @@ func (gitProvider *GitGetGitlab) processSubgroups(
 func (gitProvider *GitGetGitlab) appendGroupsProjects(
 	repoSha string,
 	git *gitlab.Client,
-	groupID int,
+	groupID int64,
 	groupName string,
 	glRepoList []*gitlab.Project,
 	gitlabOwned bool,
@@ -363,8 +347,8 @@ func (gitProvider *GitGetGitlab) appendGroupsProjects(
 	// https://docs.gitlab.com/ee/api/groups.html#list-a-groups-projects
 	prjOpt := &gitlab.ListGroupProjectsOptions{
 		ListOptions: lstOpts,
-		Owned:       boolPtr(gitlabOwned),
-		Simple:      boolPtr(true),
+		Owned:       gitlab.Ptr(gitlabOwned),
+		Simple:      gitlab.Ptr(true),
 	}
 	switch gitlabVisibility {
 	case "private":
@@ -418,7 +402,7 @@ func (gitProvider *GitGetGitlab) appendGroupsProjects(
 func (gitProvider *GitGetGitlab) getRepositories(
 	repoSha string,
 	git *gitlab.Client,
-	groupID int,
+	groupID int64,
 	groupName string,
 	glRepoList []*gitlab.Project,
 	gitlabOwned bool,

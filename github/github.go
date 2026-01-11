@@ -1,5 +1,5 @@
 /*
-Copyright © 2021-2022 Eriks Zelenka <isindir@users.sourceforge.net>
+Copyright © 2021-2026 Eriks Zelenka <isindir@users.sourceforge.net>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,24 +24,49 @@ package github
 
 // UPDATE_HERE
 import (
+	"context"
 	"fmt"
 	"os"
 
-	"github.com/google/go-github/v72/github"
+	"github.com/google/go-github/v81/github"
 	log "github.com/sirupsen/logrus"
-	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
 )
 
-func githubAuth(ctx context.Context, repositorySha string) *github.Client {
-	token, tokenFound := os.LookupEnv("GITHUB_TOKEN")
+type GitGetGithub struct {
+	token string
+}
+
+type GitGetGithubI interface {
+	Init() bool
+	RepositoryExists(ctx context.Context, repositorySha, owner, repository string) bool
+	CreateRepository(
+		ctx context.Context,
+		repositorySha string,
+		repository string,
+		mirrorVisibilityMode string,
+		sourceURL string,
+	) *github.Repository
+	FetchOwnerRepos(
+		ctx context.Context,
+		repoSha, owner, githubVisibility, githubAffiliation string,
+	) []*github.Repository
+}
+
+func (gitProvider *GitGetGithub) Init() bool {
+	var tokenFound bool
+	gitProvider.token, tokenFound = os.LookupEnv("GITHUB_TOKEN")
 	if !tokenFound {
-		log.Fatalf("%s: Error - environment variable GITHUB_TOKEN not found", repositorySha)
+		log.Fatal("Error - environment variable GITHUB_TOKEN not found")
 		os.Exit(1)
 	}
 
+	return tokenFound
+}
+
+func (gitProvider *GitGetGithub) auth(ctx context.Context, repositorySha string) *github.Client {
 	ts := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: token},
+		&oauth2.Token{AccessToken: gitProvider.token},
 	)
 	tc := oauth2.NewClient(ctx, ts)
 	git := github.NewClient(tc)
@@ -49,24 +74,31 @@ func githubAuth(ctx context.Context, repositorySha string) *github.Client {
 	return git
 }
 
-// RepositoryExists - check if remote github repository exists
-func RepositoryExists(ctx context.Context, repositorySha, owner, repository string) bool {
-	git := githubAuth(ctx, repositorySha)
+// RepositoryExists - check if remote github repository exists (method)
+func (gitProvider *GitGetGithub) RepositoryExists(ctx context.Context, repositorySha, owner, repository string) bool {
+	git := gitProvider.auth(ctx, repositorySha)
 	repo, _, err := git.Repositories.Get(ctx, owner, repository)
 
 	log.Debugf("%s: %+v == %+v", repositorySha, repo, err)
 	return err == nil
 }
 
-// CreateRepository - Create github repository
-func CreateRepository(
+// RepositoryExists - check if remote github repository exists (package function for backward compatibility)
+func RepositoryExists(ctx context.Context, repositorySha, owner, repository string) bool {
+	gitProvider := &GitGetGithub{}
+	gitProvider.Init()
+	return gitProvider.RepositoryExists(ctx, repositorySha, owner, repository)
+}
+
+// CreateRepository - Create github repository (method)
+func (gitProvider *GitGetGithub) CreateRepository(
 	ctx context.Context,
 	repositorySha string,
 	repository string,
 	mirrorVisibilityMode string,
 	sourceURL string,
 ) *github.Repository {
-	git := githubAuth(ctx, repositorySha)
+	git := gitProvider.auth(ctx, repositorySha)
 	isPrivate := true
 
 	if mirrorVisibilityMode == "public" {
@@ -74,9 +106,9 @@ func CreateRepository(
 	}
 
 	repoDef := &github.Repository{
-		Name:        github.String(repository),
-		Private:     github.Bool(isPrivate),
-		Description: github.String(fmt.Sprintf("Mirror of the '%s'", sourceURL)),
+		Name:        github.Ptr(repository),
+		Private:     github.Ptr(isPrivate),
+		Description: github.Ptr(fmt.Sprintf("Mirror of the '%s'", sourceURL)),
 	}
 
 	resultingRepository, _, err := git.Repositories.Create(ctx, "", repoDef)
@@ -88,6 +120,19 @@ func CreateRepository(
 	}
 
 	return resultingRepository
+}
+
+// CreateRepository - Create github repository (package function for backward compatibility)
+func CreateRepository(
+	ctx context.Context,
+	repositorySha string,
+	repository string,
+	mirrorVisibilityMode string,
+	sourceURL string,
+) *github.Repository {
+	gitProvider := &GitGetGithub{}
+	gitProvider.Init()
+	return gitProvider.CreateRepository(ctx, repositorySha, repository, mirrorVisibilityMode, sourceURL)
 }
 
 func fetchOrgRepos(
@@ -138,7 +183,7 @@ func fetchUserRepos(
 ) []*github.Repository {
 	var repoList []*github.Repository
 
-	opts := &github.RepositoryListOptions{
+	opts := &github.RepositoryListByAuthenticatedUserOptions{
 		// Default: all. Can be one of all, public, or private via CLI flags
 		Visibility: githubVisibility,
 		// Comma-separated list of values. Can include: owner, collaborator, or organization_member
@@ -151,7 +196,7 @@ func fetchUserRepos(
 	}
 
 	for {
-		repos, res, err := git.Repositories.List(ctx, "", opts)
+		repos, res, err := git.Repositories.ListByAuthenticatedUser(ctx, opts)
 		log.Debugf(
 			"%s: NextPage/PrevPage/FirstPage/LastPage '%d/%d/%d/%d'\n",
 			repoSha, res.NextPage, res.PrevPage, res.FirstPage, res.LastPage)
@@ -178,13 +223,13 @@ func fetchUserRepos(
 	return repoList
 }
 
-// FetchOwnerRepos - fetch owner repositories via API, being it Organization or User
-func FetchOwnerRepos(
+// FetchOwnerRepos - fetch owner repositories via API, being it Organization or User (method)
+func (gitProvider *GitGetGithub) FetchOwnerRepos(
 	ctx context.Context,
 	repoSha, owner, githubVisibility, githubAffiliation string,
 ) []*github.Repository {
 	log.Debugf("%s: Specified owner: '%s'", repoSha, owner)
-	git := githubAuth(ctx, repoSha)
+	git := gitProvider.auth(ctx, repoSha)
 	var repoList []*github.Repository
 	var userType string
 
@@ -207,4 +252,14 @@ func FetchOwnerRepos(
 	}
 
 	return repoList
+}
+
+// FetchOwnerRepos - fetch owner repositories via API, being it Organization or User (package function for backward compatibility)
+func FetchOwnerRepos(
+	ctx context.Context,
+	repoSha, owner, githubVisibility, githubAffiliation string,
+) []*github.Repository {
+	gitProvider := &GitGetGithub{}
+	gitProvider.Init()
+	return gitProvider.FetchOwnerRepos(ctx, repoSha, owner, githubVisibility, githubAffiliation)
 }

@@ -54,13 +54,12 @@ vet: ## Run go vet against code.
 
 .PHONY: mockery
 mockery: ## Regenerate mock files
-	for i in exec gitlab; do \
-	(cd $$i; rm -fr mocks; mockery --all) ;\
-	done
+	rm -fr exec/mocks gitlab/mocks github/mocks bitbucket/mocks
+	mockery
 
 .PHONY: clean-mockery
 clean-mockery: ## Clean mock files
-	for i in exec gitlab; do \
+	for i in exec gitlab github bitbucket; do \
 	(cd $$i; rm -fr mocks) ;\
 	done
 

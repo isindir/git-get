@@ -1,0 +1,30 @@
+packages:
+  github.com/isindir/git-get/exec:
+    config:
+      all: true
+      dir: "exec/mocks"
+      pkgname: "mocks"
+      filename: "mocks.go"
+      structname: "{{.InterfaceName}}"
+  github.com/isindir/git-get/gitlab:
+    config:
+      all: true
+      dir: "gitlab/mocks"
+      pkgname: "mocks"
+      filename: "mocks.go"
+      structname: "{{.InterfaceName}}"
+  github.com/isindir/git-get/github:
+    config:
+      all: true
+      dir: "github/mocks"
+      pkgname: "mocks"
+      filename: "mocks.go"
+      structname: "{{.InterfaceName}}"
+  github.com/isindir/git-get/bitbucket:
+    config:
+      all: true
+      dir: "bitbucket/mocks"
+      pkgname: "mocks"
+      filename: "mocks.go"
+      structname: "{{.InterfaceName}}"
+

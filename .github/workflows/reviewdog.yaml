@@ -9,7 +9,7 @@ jobs:
       # UPDATE_HERE
       # https://github.com/actions/checkout/releases
       - name: check out code into the go module directory
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
 
       # UPDATE_HERE

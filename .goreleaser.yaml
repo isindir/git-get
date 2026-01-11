@@ -28,12 +28,21 @@ homebrew_casks:
     name: Eriks Zelenka
     email: isindir@users.sf.net
   commit_msg_template: "Brew formula update for {{ .ProjectName }} version {{ .Tag }} - {{.ShortCommit}}"
-  directory: Formula
+  # Use Casks directory (default for homebrew_casks)
+  # directory: Casks
   homepage: "https://github.com/isindir/git-get"
   license: "MIT"
   description: "Tool to clone/fetch project repositories an-mass using Gitfile configuration file. git-get can also generate Gitfile from github, gitlab or bitbucket, to have all repositories user has access to."
-  # test: |
-  #   system "#{bin}/git-get", "version", "--long"
+  # URL verification helps pass homebrew audit
+  url:
+    verified: "github.com/isindir/git-get"
+  # Remove quarantine bit for unsigned binaries on macOS
+  hooks:
+    post:
+      install: |
+        if OS.mac?
+          system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/git-get"]
+        end
 release:
   prerelease: auto
 

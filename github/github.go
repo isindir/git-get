@@ -28,7 +28,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/google/go-github/v81/github"
+	"github.com/google/go-github/v88/github"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 )
@@ -69,7 +69,10 @@ func (gitProvider *GitGetGithub) auth(ctx context.Context, repositorySha string)
 		&oauth2.Token{AccessToken: gitProvider.token},
 	)
 	tc := oauth2.NewClient(ctx, ts)
-	git := github.NewClient(tc)
+	git, err := github.NewClient(github.WithHTTPClient(tc))
+	if err != nil {
+		log.Fatalf("Error creating GitHub client: %v", err)
+	}
 
 	return git
 }
@@ -99,11 +102,7 @@ func (gitProvider *GitGetGithub) CreateRepository(
 	sourceURL string,
 ) *github.Repository {
 	git := gitProvider.auth(ctx, repositorySha)
-	isPrivate := true
-
-	if mirrorVisibilityMode == "public" {
-		isPrivate = false
-	}
+	isPrivate := mirrorVisibilityMode != "public"
 
 	repoDef := &github.Repository{
 		Name:        github.Ptr(repository),
@@ -154,7 +153,7 @@ func fetchOrgRepos(
 			"%s: NextPage/PrevPage/FirstPage/LastPage '%d/%d/%d/%d'\n",
 			repoSha, res.NextPage, res.PrevPage, res.FirstPage, res.LastPage)
 		for repo := 0; repo < len(repos); repo++ {
-			log.Debugf("%s: (%d) Repo FullName '%s'", repoSha, opts.ListOptions.Page, *repos[repo].FullName)
+			log.Debugf("%s: (%d) Repo FullName '%s'", repoSha, opts.Page, *repos[repo].FullName)
 		}
 		repoList = append(repoList, repos...)
 		log.Debugf("%s: Found '%d' repositories owned by '%s'", repoSha, len(repos), owner)
@@ -201,7 +200,7 @@ func fetchUserRepos(
 			"%s: NextPage/PrevPage/FirstPage/LastPage '%d/%d/%d/%d'\n",
 			repoSha, res.NextPage, res.PrevPage, res.FirstPage, res.LastPage)
 		for repo := 0; repo < len(repos); repo++ {
-			log.Debugf("%s: (%d) Repo FullName '%s'", repoSha, opts.ListOptions.Page, *repos[repo].FullName)
+			log.Debugf("%s: (%d) Repo FullName '%s'", repoSha, opts.Page, *repos[repo].FullName)
 		}
 		repoList = append(repoList, repos...)
 		log.Debugf("%s: Found '%d' repositories owned by '%s'", repoSha, len(repos), owner)

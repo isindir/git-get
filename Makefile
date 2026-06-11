@@ -41,7 +41,7 @@ test: ## Placeholder to run unit tests
 .PHONY: check
 check: ## Runs linting
 	@echo "Linting"
-	@for d in $$(go list ./... | egrep -v 'vendor|asdf'); do staticcheck $${d}; done
+	golangci-lint run ./...
 	@echo
 
 .PHONY: fmt

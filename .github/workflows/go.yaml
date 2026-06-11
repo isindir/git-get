@@ -57,7 +57,7 @@ jobs:
         uses: asdf-vm/actions/install@v4
         # uses: asdf-vm/actions/install@9cd779f40fe38688dd19505ccbc4eaaf018b44e7
         with:
-          asdf_version: 0.18.0
+          asdf_version: 0.19.0
 
       - name: Check out full code history
         run: |

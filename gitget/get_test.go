@@ -14,6 +14,19 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+const (
+	testAltName    = "abc"
+	testAltNameCde = "cde"
+	testFullPathP  = "cde_p"
+	testFullPathA  = "cde_a"
+	testName1      = "test 1"
+	testName2      = "test 2"
+	testRefMaster  = "master"
+	testRefDevelop = "develop"
+	testShaVal     = "abcabc"
+	testRepoURL    = "https://github.com/user/repo.git"
+)
+
 var repoUrls = map[string]string{
 	"https://github.com/ansible/ansible.git":               "ansible",
 	"git@github.com:ansible/ansible.git":                   "ansible",
@@ -28,7 +41,7 @@ func Test_SetDefaultRef(t *testing.T) {
 
 	// Test setting to default if not specified
 	repo.SetDefaultRef()
-	assert.Equal(t, "master", repo.Ref)
+	assert.Equal(t, testRefMaster, repo.Ref)
 
 	// Test that if already set - setting to default has no effect
 	repo.Ref = "trunk"
@@ -47,9 +60,9 @@ func Test_GetRepoLocalName(t *testing.T) {
 	}
 
 	repo := Repo{}
-	repo.AltName = "abc"
+	repo.AltName = testAltName
 	altname = repo.GetRepoLocalName()
-	assert.Equal(t, "abc", altname)
+	assert.Equal(t, testAltName, altname)
 }
 
 func Test_SetRepoLocalName(t *testing.T) {
@@ -61,15 +74,15 @@ func Test_SetRepoLocalName(t *testing.T) {
 	}
 
 	repo := Repo{}
-	repo.AltName = "abc"
+	repo.AltName = testAltName
 	repo.SetRepoLocalName()
-	assert.Equal(t, "abc", repo.AltName)
+	assert.Equal(t, testAltName, repo.AltName)
 }
 
 func Test_SetSha(t *testing.T) {
 	repo := Repo{}
 	repo.URL = "git@github.com:johndoe/git-get.git"
-	repo.Ref = "master"
+	repo.Ref = testRefMaster
 	repo.fullPath = "/Users/johndoe/workspace/john/git-get/git-get"
 
 	repo.SetSha()
@@ -89,9 +102,9 @@ func Test_PathExists(t *testing.T) {
 func Test_SetRepoFullPath(t *testing.T) {
 	repo := Repo{
 		Path:    "qqq",
-		AltName: "abc",
+		AltName: testAltName,
 	}
-	expectedFullPath := path.Join("qqq", "abc")
+	expectedFullPath := path.Join("qqq", testAltName)
 
 	repo.SetRepoFullPath()
 	assert.Equal(t, expectedFullPath, repo.fullPath)
@@ -118,8 +131,8 @@ func Test_generateSha(t *testing.T) {
 	}
 
 	testCases := []testCase{
-		{name: "test 1", repoInfo: "Some string here", expectedResult: "21e5963"},
-		{name: "test 2", repoInfo: "Another string here", expectedResult: "04d5c8f"},
+		{name: testName1, repoInfo: "Some string here", expectedResult: "21e5963"},
+		{name: testName2, repoInfo: "Another string here", expectedResult: "04d5c8f"},
 	}
 
 	for _, tc := range testCases {
@@ -139,10 +152,10 @@ func Test_SetMirrorURL(t *testing.T) {
 	}
 
 	testCases := []testCase{
-		{name: "test repo abc", expectedResult: "abc/abc.git", repo: Repo{AltName: "abc"}, mirrorRootURL: "abc"},
-		{name: "test repo qqq", expectedResult: "abc/qqq/cde.git", repo: Repo{AltName: "cde"}, mirrorRootURL: "abc/qqq"},
-		{name: "test repo http://qqq", expectedResult: "http://qqq/cde.git", repo: Repo{AltName: "cde"}, mirrorRootURL: "http://qqq"},
-		{name: "test repo git@qqq", expectedResult: "git@qqq/cde.git", repo: Repo{AltName: "cde"}, mirrorRootURL: "git@qqq"},
+		{name: "test repo abc", expectedResult: "abc/abc.git", repo: Repo{AltName: testAltName}, mirrorRootURL: testAltName},
+		{name: "test repo qqq", expectedResult: "abc/qqq/cde.git", repo: Repo{AltName: testAltNameCde}, mirrorRootURL: "abc/qqq"},
+		{name: "test repo http://qqq", expectedResult: "http://qqq/cde.git", repo: Repo{AltName: testAltNameCde}, mirrorRootURL: "http://qqq"},
+		{name: "test repo git@qqq", expectedResult: "git@qqq/cde.git", repo: Repo{AltName: testAltNameCde}, mirrorRootURL: "git@qqq"},
 	}
 
 	for _, tc := range testCases {
@@ -162,8 +175,8 @@ func Test_Repo_IsRefTag(t *testing.T) {
 	}
 
 	testCases := []testCase{
-		{name: "test 1", expectedResult: true, repo: Repo{Ref: "abc", fullPath: "cde_p"}, returnError: nil},
-		{name: "test 2", expectedResult: false, repo: Repo{Ref: "cde", fullPath: "cde_a"}, returnError: fmt.Errorf("test error")},
+		{name: testName1, expectedResult: true, repo: Repo{Ref: testAltName, fullPath: testFullPathP}, returnError: nil},
+		{name: testName2, expectedResult: false, repo: Repo{Ref: testAltNameCde, fullPath: testFullPathA}, returnError: fmt.Errorf("test error")},
 	}
 
 	for _, tc := range testCases {
@@ -173,7 +186,7 @@ func Test_Repo_IsRefTag(t *testing.T) {
 
 			mockGitExec.On(
 				"ExecGitCommand",
-				[]string{"show-ref", "--quiet", "--verify", fmt.Sprintf("refs/tags/%s", tc.repo.Ref)},
+				[]string{gitCmdShowRef, gitFlagQuiet, gitFlagVerify, fmt.Sprintf("refs/tags/%s", tc.repo.Ref)},
 				(*bytes.Buffer)(nil),
 				(*bytes.Buffer)(nil),
 				tc.repo.fullPath).Return(exe, tc.returnError)
@@ -195,8 +208,8 @@ func Test_Repo_IsRefBranch(t *testing.T) {
 	}
 
 	testCases := []testCase{
-		{name: "test 1", expectedResult: true, repo: Repo{Ref: "abc", fullPath: "cde_p"}, returnError: nil},
-		{name: "test 2", expectedResult: false, repo: Repo{Ref: "cde", fullPath: "cde_a"}, returnError: fmt.Errorf("test error")},
+		{name: testName1, expectedResult: true, repo: Repo{Ref: testAltName, fullPath: testFullPathP}, returnError: nil},
+		{name: testName2, expectedResult: false, repo: Repo{Ref: testAltNameCde, fullPath: testFullPathA}, returnError: fmt.Errorf("test error")},
 	}
 
 	for _, tc := range testCases {
@@ -206,7 +219,7 @@ func Test_Repo_IsRefBranch(t *testing.T) {
 
 			mockGitExec.On(
 				"ExecGitCommand",
-				[]string{"show-ref", "--quiet", "--verify", fmt.Sprintf("refs/heads/%s", tc.repo.Ref)},
+				[]string{gitCmdShowRef, gitFlagQuiet, gitFlagVerify, fmt.Sprintf("refs/heads/%s", tc.repo.Ref)},
 				(*bytes.Buffer)(nil),
 				(*bytes.Buffer)(nil),
 				tc.repo.fullPath).Return(exe, tc.returnError)
@@ -228,8 +241,8 @@ func Test_Repo_GitStashPop(t *testing.T) {
 	}
 
 	testCases := []testCase{
-		{name: "test 1", expectedResult: true, repo: Repo{}, returnError: nil},
-		{name: "test 2", expectedResult: false, repo: Repo{}, returnError: fmt.Errorf("test error")},
+		{name: testName1, expectedResult: true, repo: Repo{}, returnError: nil},
+		{name: testName2, expectedResult: false, repo: Repo{}, returnError: fmt.Errorf("test error")},
 	}
 
 	for _, tc := range testCases {
@@ -240,7 +253,7 @@ func Test_Repo_GitStashPop(t *testing.T) {
 
 			mockGitExec.On(
 				"ExecGitCommand",
-				[]string{"stash", "pop"},
+				[]string{gitCmdStash, "pop"},
 				(*bytes.Buffer)(nil),
 				serr,
 				tc.repo.fullPath).Return(exe, tc.returnError)
@@ -263,8 +276,8 @@ func Test_Repo_GitStashSave(t *testing.T) {
 	}
 
 	testCases := []testCase{
-		{name: "test 1", expectedResult: true, repo: Repo{}, returnError: nil},
-		{name: "test 2", expectedResult: false, repo: Repo{}, returnError: fmt.Errorf("test error")},
+		{name: testName1, expectedResult: true, repo: Repo{}, returnError: nil},
+		{name: testName2, expectedResult: false, repo: Repo{}, returnError: fmt.Errorf("test error")},
 	}
 
 	for _, tc := range testCases {
@@ -275,7 +288,7 @@ func Test_Repo_GitStashSave(t *testing.T) {
 
 			mockGitExec.On(
 				"ExecGitCommand",
-				[]string{"stash", "save"},
+				[]string{gitCmdStash, "save"},
 				(*bytes.Buffer)(nil),
 				serr,
 				tc.repo.fullPath).Return(exe, tc.returnError)
@@ -298,8 +311,8 @@ func Test_Repo_CloneMirror(t *testing.T) {
 	}
 
 	testCases := []testCase{
-		{name: "test 1", expectedResult: true, repo: Repo{URL: "cde", fullPath: "cde_a"}, returnError: nil},
-		{name: "test 2", expectedResult: false, repo: Repo{URL: "cde", fullPath: "cde_a"}, returnError: fmt.Errorf("test error")},
+		{name: testName1, expectedResult: true, repo: Repo{URL: testAltNameCde, fullPath: testFullPathA}, returnError: nil},
+		{name: testName2, expectedResult: false, repo: Repo{URL: testAltNameCde, fullPath: testFullPathA}, returnError: fmt.Errorf("test error")},
 	}
 
 	for _, tc := range testCases {
@@ -310,7 +323,7 @@ func Test_Repo_CloneMirror(t *testing.T) {
 
 			mockGitExec.On(
 				"ExecGitCommand",
-				[]string{"clone", "--mirror", tc.repo.URL, tc.repo.fullPath},
+				[]string{gitCmdClone, gitFlagMirror, tc.repo.URL, tc.repo.fullPath},
 				(*bytes.Buffer)(nil),
 				serr,
 				"").Return(exe, tc.returnError)
@@ -333,8 +346,8 @@ func Test_Repo_GetCurrentBranch(t *testing.T) {
 
 	testCases := []testCase{
 		// Have not found a way to mutate `outb` at mock call invocation time to validate against `expectedResult`
-		{name: "test 1", expectedResult: "", repo: Repo{fullPath: "cde_a"}, returnError: nil},
-		{name: "test 2", expectedResult: "", repo: Repo{fullPath: "cde_a"}, returnError: fmt.Errorf("test error")},
+		{name: testName1, expectedResult: "", repo: Repo{fullPath: testFullPathA}, returnError: nil},
+		{name: testName2, expectedResult: "", repo: Repo{fullPath: testFullPathA}, returnError: fmt.Errorf("test error")},
 	}
 
 	for _, tc := range testCases {
@@ -345,7 +358,7 @@ func Test_Repo_GetCurrentBranch(t *testing.T) {
 
 			mockGitExec.On(
 				"ExecGitCommand",
-				[]string{"rev-parse", "--abbrev-ref", "HEAD"},
+				[]string{gitCmdRevParse, gitFlagAbbrevRef, gitRefHEAD},
 				&outb,
 				&errb,
 				tc.repo.fullPath).Return(exe, tc.returnError)
@@ -370,19 +383,19 @@ func Test_Repo_IsClean(t *testing.T) {
 	testCases := []testCase{
 		{
 			name: "test 1: no error", expectedResult: true,
-			repo: Repo{fullPath: "cde_p"}, err1: nil, err2: nil,
+			repo: Repo{fullPath: testFullPathP}, err1: nil, err2: nil,
 		},
 		{
 			name: "test 2: err1 raised", expectedResult: false,
-			repo: Repo{fullPath: "cde_a"}, err1: fmt.Errorf("test error"), err2: nil,
+			repo: Repo{fullPath: testFullPathA}, err1: fmt.Errorf("test error"), err2: nil,
 		},
 		{
 			name: "test 3: err2 raised", expectedResult: false,
-			repo: Repo{fullPath: "cde_a"}, err1: nil, err2: fmt.Errorf("test error"),
+			repo: Repo{fullPath: testFullPathA}, err1: nil, err2: fmt.Errorf("test error"),
 		},
 		{
 			name: "test 3: err1 and err2 can be raised", expectedResult: false,
-			repo: Repo{fullPath: "cde_a"}, err1: fmt.Errorf("test error"), err2: fmt.Errorf("test error"),
+			repo: Repo{fullPath: testFullPathA}, err1: fmt.Errorf("test error"), err2: fmt.Errorf("test error"),
 		},
 	}
 
@@ -393,13 +406,13 @@ func Test_Repo_IsClean(t *testing.T) {
 
 			mockGitExec.On(
 				"ExecGitCommand",
-				[]string{"diff", "--quiet"},
+				[]string{gitCmdDiff, gitFlagQuiet},
 				(*bytes.Buffer)(nil),
 				(*bytes.Buffer)(nil),
 				tc.repo.fullPath).Return(exe, tc.err1)
 			mockGitExec.On(
 				"ExecGitCommand",
-				[]string{"diff", "--staged", "--quiet"},
+				[]string{gitCmdDiff, "--staged", gitFlagQuiet},
 				(*bytes.Buffer)(nil),
 				(*bytes.Buffer)(nil),
 				tc.repo.fullPath).Return(exe, tc.err2)
@@ -421,8 +434,8 @@ func Test_Repo_ShallowClone(t *testing.T) {
 	}
 
 	testCases := []testCase{
-		{name: "test 1", expectedResult: true, repo: Repo{Ref: "abc", URL: "cde", fullPath: "cde_a"}, returnError: nil},
-		{name: "test 2", expectedResult: false, repo: Repo{Ref: "abc", URL: "cde", fullPath: "cde_a"}, returnError: fmt.Errorf("test error")},
+		{name: testName1, expectedResult: true, repo: Repo{Ref: testAltName, URL: testAltNameCde, fullPath: testFullPathA}, returnError: nil},
+		{name: testName2, expectedResult: false, repo: Repo{Ref: testAltName, URL: testAltNameCde, fullPath: testFullPathA}, returnError: fmt.Errorf("test error")},
 	}
 
 	for _, tc := range testCases {
@@ -433,7 +446,7 @@ func Test_Repo_ShallowClone(t *testing.T) {
 
 			mockGitExec.On(
 				"ExecGitCommand",
-				[]string{"clone", "--depth", "1", "--branch", tc.repo.Ref, tc.repo.URL, tc.repo.fullPath},
+				[]string{gitCmdClone, "--depth", "1", gitFlagBranch, tc.repo.Ref, tc.repo.URL, tc.repo.fullPath},
 				(*bytes.Buffer)(nil),
 				serr,
 				"").Return(exe, tc.returnError)
@@ -455,8 +468,8 @@ func Test_Repo_Clone(t *testing.T) {
 	}
 
 	testCases := []testCase{
-		{name: "test 1", expectedResult: true, repo: Repo{Ref: "abc", URL: "cde", fullPath: "cde_a"}, returnError: nil},
-		{name: "test 2", expectedResult: false, repo: Repo{Ref: "abc", URL: "cde", fullPath: "cde_a"}, returnError: fmt.Errorf("test error")},
+		{name: testName1, expectedResult: true, repo: Repo{Ref: testAltName, URL: testAltNameCde, fullPath: testFullPathA}, returnError: nil},
+		{name: testName2, expectedResult: false, repo: Repo{Ref: testAltName, URL: testAltNameCde, fullPath: testFullPathA}, returnError: fmt.Errorf("test error")},
 	}
 
 	for _, tc := range testCases {
@@ -467,7 +480,7 @@ func Test_Repo_Clone(t *testing.T) {
 
 			mockGitExec.On(
 				"ExecGitCommand",
-				[]string{"clone", "--branch", tc.repo.Ref, tc.repo.URL, tc.repo.fullPath},
+				[]string{gitCmdClone, gitFlagBranch, tc.repo.Ref, tc.repo.URL, tc.repo.fullPath},
 				(*bytes.Buffer)(nil),
 				serr,
 				"").Return(exe, tc.returnError)
@@ -489,8 +502,8 @@ func Test_Repo_PushMirror(t *testing.T) {
 	}
 
 	testCases := []testCase{
-		{name: "test 1", expectedResult: true, repo: Repo{mirrorURL: "cde"}, returnError: nil},
-		{name: "test 2", expectedResult: false, repo: Repo{mirrorURL: "cde"}, returnError: fmt.Errorf("test error")},
+		{name: testName1, expectedResult: true, repo: Repo{mirrorURL: testAltNameCde}, returnError: nil},
+		{name: testName2, expectedResult: false, repo: Repo{mirrorURL: testAltNameCde}, returnError: fmt.Errorf("test error")},
 	}
 
 	for _, tc := range testCases {
@@ -501,7 +514,7 @@ func Test_Repo_PushMirror(t *testing.T) {
 
 			mockGitExec.On(
 				"ExecGitCommand",
-				[]string{"push", "--mirror", tc.repo.mirrorURL},
+				[]string{"push", gitFlagMirror, tc.repo.mirrorURL},
 				(*bytes.Buffer)(nil),
 				serr,
 				"").Return(exe, tc.returnError)
@@ -526,35 +539,35 @@ func Test_Repo_GitCheckout(t *testing.T) {
 
 	testCases := []testCase{
 		{
-			name:                   "test 1",
+			name:                   testName1,
 			expectedResult:         true,
 			expectedNotOnRefBranch: false,
-			branch:                 "develop",
-			repo:                   Repo{sha: "abcabc", Ref: "develop", fullPath: "abc"},
+			branch:                 testRefDevelop,
+			repo:                   Repo{sha: testShaVal, Ref: testRefDevelop, fullPath: testAltName},
 			returnError:            nil,
 		},
 		{
-			name:                   "test 2",
+			name:                   testName2,
 			expectedResult:         false,
 			expectedNotOnRefBranch: false,
-			branch:                 "develop",
-			repo:                   Repo{sha: "abcabc", Ref: "develop", fullPath: "abc"},
+			branch:                 testRefDevelop,
+			repo:                   Repo{sha: testShaVal, Ref: testRefDevelop, fullPath: testAltName},
 			returnError:            fmt.Errorf("test error"),
 		},
 		{
 			name:                   "test 3",
 			expectedResult:         true,
 			expectedNotOnRefBranch: true,
-			branch:                 "master",
-			repo:                   Repo{sha: "abcabc", Ref: "develop", fullPath: "abc"},
+			branch:                 testRefMaster,
+			repo:                   Repo{sha: testShaVal, Ref: testRefDevelop, fullPath: testAltName},
 			returnError:            nil,
 		},
 		{
 			name:                   "test 4",
 			expectedResult:         false,
 			expectedNotOnRefBranch: true,
-			branch:                 "master",
-			repo:                   Repo{sha: "abcabc", Ref: "develop", fullPath: "abc"},
+			branch:                 testRefMaster,
+			repo:                   Repo{sha: testShaVal, Ref: testRefDevelop, fullPath: testAltName},
 			returnError:            fmt.Errorf("test error"),
 		},
 	}
@@ -595,26 +608,26 @@ func Test_IgnoreThisRepo(t *testing.T) {
 	testCases := []testCase{
 		{
 			name:           "repo not in ignore list",
-			repoURL:        "https://github.com/user/repo.git",
+			repoURL:        testRepoURL,
 			ignoreList:     []Repo{{URL: "https://github.com/other/repo.git"}},
 			expectedResult: false,
 		},
 		{
 			name:           "repo in ignore list",
-			repoURL:        "https://github.com/user/repo.git",
-			ignoreList:     []Repo{{URL: "https://github.com/user/repo.git"}},
+			repoURL:        testRepoURL,
+			ignoreList:     []Repo{{URL: testRepoURL}},
 			expectedResult: true,
 		},
 		{
 			name:           "empty ignore list",
-			repoURL:        "https://github.com/user/repo.git",
+			repoURL:        testRepoURL,
 			ignoreList:     []Repo{},
 			expectedResult: false,
 		},
 		{
 			name:           "multiple repos in ignore list",
-			repoURL:        "https://github.com/user/repo.git",
-			ignoreList:     []Repo{{URL: "https://github.com/other/repo.git"}, {URL: "https://github.com/user/repo.git"}},
+			repoURL:        testRepoURL,
+			ignoreList:     []Repo{{URL: "https://github.com/other/repo.git"}, {URL: testRepoURL}},
 			expectedResult: true,
 		},
 	}
@@ -637,7 +650,7 @@ func Test_Repo_SetShellRunner(t *testing.T) {
 
 func Test_Repo_PrepareForGet(t *testing.T) {
 	repo := Repo{
-		URL: "https://github.com/user/repo.git",
+		URL: testRepoURL,
 		Ref: "main",
 	}
 

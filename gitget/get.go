@@ -50,6 +50,18 @@ import (
 const (
 	HTTPS = "https"
 	SSH   = "ssh"
+
+	gitCmdClone      = "clone"
+	gitCmdDiff       = "diff"
+	gitCmdRevParse   = "rev-parse"
+	gitCmdShowRef    = "show-ref"
+	gitCmdStash      = "stash"
+	gitFlagMirror    = "--mirror"
+	gitFlagBranch    = "--branch"
+	gitFlagQuiet     = "--quiet"
+	gitFlagAbbrevRef = "--abbrev-ref"
+	gitFlagVerify    = "--verify"
+	gitRefHEAD       = "HEAD"
 )
 
 var (
@@ -274,7 +286,7 @@ func (repo *Repo) SetRepoFullPath() {
 }
 
 // PathExists returns `true` if given `path` passed as sting exists, otherwise returns false.
-func PathExists(pathToCheck string) (bool, os.FileInfo) {
+func PathExists(pathToCheck string) (exists bool, info os.FileInfo) {
 	finfo, err := os.Stat(pathToCheck)
 
 	if os.IsNotExist(err) {
@@ -293,7 +305,7 @@ func (repo *Repo) CloneMirror() bool {
 	log.Infof("%s: Clone repository '%s' for mirror", repo.sha, repo.URL)
 	var serr bytes.Buffer
 	_, err := (*repo.executor).ExecGitCommand(
-		[]string{"clone", "--mirror", repo.URL, repo.fullPath},
+		[]string{gitCmdClone, gitFlagMirror, repo.URL, repo.fullPath},
 		nil,
 		&serr,
 		"",
@@ -310,7 +322,7 @@ func (repo *Repo) PushMirror() bool {
 	log.Infof("%s: Push repository '%s' as a mirror '%s'", repo.sha, repo.URL, repo.mirrorURL)
 	var serr bytes.Buffer
 	_, err := (*repo.executor).ExecGitCommand(
-		[]string{"push", "--mirror", repo.mirrorURL},
+		[]string{"push", gitFlagMirror, repo.mirrorURL},
 		nil,
 		&serr,
 		repo.fullPath,
@@ -327,7 +339,7 @@ func (repo *Repo) Clone() bool {
 	log.Infof("%s: Clone repository '%s'", repo.sha, repo.URL)
 	var serr bytes.Buffer
 	_, err := (*repo.executor).ExecGitCommand(
-		[]string{"clone", "--branch", repo.Ref, repo.URL, repo.fullPath},
+		[]string{gitCmdClone, gitFlagBranch, repo.Ref, repo.URL, repo.fullPath},
 		nil,
 		&serr,
 		"",
@@ -345,7 +357,7 @@ func (repo *Repo) ShallowClone() bool {
 	log.Infof("%s: Clone repository '%s'", repo.sha, repo.URL)
 	var serr bytes.Buffer
 	_, err := (*repo.executor).ExecGitCommand(
-		[]string{"clone", "--depth", "1", "--branch", repo.Ref, repo.URL, repo.fullPath},
+		[]string{gitCmdClone, "--depth", "1", gitFlagBranch, repo.Ref, repo.URL, repo.fullPath},
 		nil,
 		&serr,
 		"",
@@ -373,18 +385,18 @@ func (repo *Repo) RemoveTargetDir(dotGit bool) {
 }
 
 func (repo *Repo) IsClean() bool {
-	_, err := (*repo.executor).ExecGitCommand([]string{"diff", "--quiet"}, nil, nil, repo.fullPath)
+	_, err := (*repo.executor).ExecGitCommand([]string{gitCmdDiff, gitFlagQuiet}, nil, nil, repo.fullPath)
 	if err != nil {
 		return false
 	}
-	_, err = (*repo.executor).ExecGitCommand([]string{"diff", "--staged", "--quiet"}, nil, nil, repo.fullPath)
+	_, err = (*repo.executor).ExecGitCommand([]string{gitCmdDiff, "--staged", gitFlagQuiet}, nil, nil, repo.fullPath)
 	return err == nil
 }
 
 func (repo *Repo) IsCurrentBranchRef() bool {
 	var outb, errb bytes.Buffer
 	_, err := (*repo.executor).ExecGitCommand(
-		[]string{"rev-parse", "--abbrev-ref", "HEAD"},
+		[]string{gitCmdRevParse, gitFlagAbbrevRef, gitRefHEAD},
 		&outb,
 		&errb,
 		repo.fullPath,
@@ -398,7 +410,7 @@ func (repo *Repo) IsCurrentBranchRef() bool {
 func (repo *Repo) GetCurrentBranch() string {
 	var outb, errb bytes.Buffer
 	_, err := (*repo.executor).ExecGitCommand(
-		[]string{"rev-parse", "--abbrev-ref", "HEAD"},
+		[]string{gitCmdRevParse, gitFlagAbbrevRef, gitRefHEAD},
 		&outb,
 		&errb,
 		repo.fullPath,
@@ -413,7 +425,7 @@ func (repo *Repo) GetCurrentBranch() string {
 func (repo *Repo) GitStashSave() bool {
 	log.Infof("%s: Stash unsaved changes", repo.sha)
 	var serr bytes.Buffer
-	_, err := (*repo.executor).ExecGitCommand([]string{"stash", "save"}, nil, &serr, repo.fullPath)
+	_, err := (*repo.executor).ExecGitCommand([]string{gitCmdStash, "save"}, nil, &serr, repo.fullPath)
 	if err != nil {
 		repo.status.Error = true
 		log.Warnf("%s: %v: %v", repo.sha, err, serr.String())
@@ -425,7 +437,7 @@ func (repo *Repo) GitStashSave() bool {
 func (repo *Repo) GitStashPop() bool {
 	log.Infof("%s: Restore stashed changes", repo.sha)
 	var serr bytes.Buffer
-	_, err := (*repo.executor).ExecGitCommand([]string{"stash", "pop"}, nil, &serr, repo.fullPath)
+	_, err := (*repo.executor).ExecGitCommand([]string{gitCmdStash, "pop"}, nil, &serr, repo.fullPath)
 	if err != nil {
 		repo.status.Error = true
 		log.Warnf("%s: %v: %v", repo.sha, err, serr.String())
@@ -438,7 +450,7 @@ func (repo *Repo) GitStashPop() bool {
 func (repo *Repo) IsRefBranch() bool {
 	fullRef := fmt.Sprintf("refs/heads/%s", repo.Ref)
 	_, err := (*repo.executor).ExecGitCommand(
-		[]string{"show-ref", "--quiet", "--verify", fullRef},
+		[]string{gitCmdShowRef, gitFlagQuiet, gitFlagVerify, fullRef},
 		nil,
 		nil,
 		repo.fullPath,
@@ -449,7 +461,7 @@ func (repo *Repo) IsRefBranch() bool {
 func (repo *Repo) IsRefTag() bool {
 	fullRef := fmt.Sprintf("refs/tags/%s", repo.Ref)
 	_, err := (*repo.executor).ExecGitCommand(
-		[]string{"show-ref", "--quiet", "--verify", fullRef},
+		[]string{gitCmdShowRef, gitFlagQuiet, gitFlagVerify, fullRef},
 		nil,
 		nil,
 		repo.fullPath,
@@ -842,7 +854,7 @@ func GetRepositories(
 		fmt.Fprintln(w)
 		fmt.Fprintln(w, "REPOSITORY\tPATH\tLOCAL_CHANGES\tNOT_ON_REF\tERROR\tSKIPPED\tCLEAN")
 		for _, repo := range *repoList {
-			clean := !(!repo.status.Processed || repo.status.UncommittedChanges || repo.status.NotOnRefBranch || repo.status.Error)
+			clean := repo.status.Processed && !repo.status.UncommittedChanges && !repo.status.NotOnRefBranch && !repo.status.Error
 			if repo.status.Processed {
 				fmt.Fprintf(w, "%s\t%s\t%t\t%t\t%t\t%t\t%t\n",
 					repo.URL,
@@ -1087,7 +1099,7 @@ func writeReposToFile(repoSha, cfgFile string, repoList []Repo) {
 // if these are existing and returns list of repositories, if any file
 // is missing - it fails
 func GetConfigRepoList(cfgFiles []string) *RepoList {
-	var mergedRepoList []Repo
+	mergedRepoList := make([]Repo, 0, len(cfgFiles))
 	for _, cfgFile := range cfgFiles {
 		var singleRepoList []Repo
 		yamlFile, err := os.ReadFile(cfgFile)

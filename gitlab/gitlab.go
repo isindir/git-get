@@ -278,7 +278,7 @@ func (gitProvider *GitGetGitlab) processSubgroups(
 	for {
 		log.Debugf(
 			"%s: Fetching group '%d:%s' subgroups - page '%d'",
-			repoSha, groupID, groupName, subGrpOpt.ListOptions.Page)
+			repoSha, groupID, groupName, subGrpOpt.Page)
 		groups, res, err := git.Groups.ListSubGroups(groupID, subGrpOpt, nil)
 		if err != nil {
 			log.Errorf(

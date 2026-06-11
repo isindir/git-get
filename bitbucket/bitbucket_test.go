@@ -10,6 +10,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+const expectedProjectName = "MYPROJECTNAME"
+
 func TestGitGetBitbucket_Init_Success(t *testing.T) {
 	// Set up environment variables
 	originalUsername := os.Getenv("BITBUCKET_USERNAME")
@@ -67,12 +69,12 @@ func TestGenerateProjectKey(t *testing.T) {
 		{
 			name:     "name with hyphens",
 			input:    "my-project-name",
-			expected: "MYPROJECTNAME",
+			expected: expectedProjectName,
 		},
 		{
 			name:     "name with special chars",
 			input:    "my@project#name!",
-			expected: "MYPROJECTNAME",
+			expected: expectedProjectName,
 		},
 		{
 			name:     "name with underscores",
@@ -87,7 +89,7 @@ func TestGenerateProjectKey(t *testing.T) {
 		{
 			name:     "name with dots",
 			input:    "my.project.name",
-			expected: "MYPROJECTNAME",
+			expected: expectedProjectName,
 		},
 		{
 			name:     "complex name",

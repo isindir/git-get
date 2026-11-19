@@ -33,13 +33,10 @@ homebrew_casks:
   homepage: "https://github.com/isindir/git-get"
   license: "MIT"
   description: "Tool to clone/fetch project repositories an-mass using Gitfile configuration file. git-get can also generate Gitfile from github, gitlab or bitbucket, to have all repositories user has access to."
-  # URL verification helps pass homebrew audit
-  url:
-    verified: "github.com/isindir/git-get"
   # Remove quarantine bit for unsigned binaries on macOS
   hooks:
     post:
-      install: |
+      install_steps: |
         if OS.mac?
           system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/git-get"]
         end

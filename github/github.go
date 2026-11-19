@@ -64,7 +64,7 @@ func (gitProvider *GitGetGithub) Init() bool {
 	return tokenFound
 }
 
-func (gitProvider *GitGetGithub) auth(ctx context.Context, repositorySha string) *github.Client {
+func (gitProvider *GitGetGithub) auth(ctx context.Context) *github.Client {
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: gitProvider.token},
 	)
@@ -79,7 +79,7 @@ func (gitProvider *GitGetGithub) auth(ctx context.Context, repositorySha string)
 
 // RepositoryExists - check if remote github repository exists (method)
 func (gitProvider *GitGetGithub) RepositoryExists(ctx context.Context, repositorySha, owner, repository string) bool {
-	git := gitProvider.auth(ctx, repositorySha)
+	git := gitProvider.auth(ctx)
 	repo, _, err := git.Repositories.Get(ctx, owner, repository)
 
 	log.Debugf("%s: %+v == %+v", repositorySha, repo, err)
@@ -101,7 +101,7 @@ func (gitProvider *GitGetGithub) CreateRepository(
 	mirrorVisibilityMode string,
 	sourceURL string,
 ) *github.Repository {
-	git := gitProvider.auth(ctx, repositorySha)
+	git := gitProvider.auth(ctx)
 	isPrivate := mirrorVisibilityMode != "public"
 
 	repoDef := github.CreateRepositoryRequest{
@@ -224,7 +224,7 @@ func (gitProvider *GitGetGithub) FetchOwnerRepos(
 	repoSha, owner, githubVisibility, githubAffiliation string,
 ) []*github.Repository {
 	log.Debugf("%s: Specified owner: '%s'", repoSha, owner)
-	git := gitProvider.auth(ctx, repoSha)
+	git := gitProvider.auth(ctx)
 	var repoList []*github.Repository
 	var userType string
 

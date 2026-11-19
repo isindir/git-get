@@ -100,7 +100,7 @@ func TestGitGetGithub_Auth(t *testing.T) {
 	gitProvider.Init()
 
 	ctx := context.Background()
-	client := gitProvider.auth(ctx, "test-sha")
+	client := gitProvider.auth(ctx)
 
 	assert.NotNil(t, client)
 	// Verify client is properly initialized

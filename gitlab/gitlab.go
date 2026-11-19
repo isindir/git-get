@@ -173,17 +173,17 @@ func (gitProvider *GitGetGitlab) CreateProject(
 	gitProvider.auth(repositorySha, baseUrl)
 
 	p := &gitlab.CreateProjectOptions{
-		Name: gitlab.Ptr(projectName),
-		Description: gitlab.Ptr(
+		Name: new(projectName),
+		Description: new(
 			fmt.Sprintf("Mirror of the '%s'", sourceURL),
 		),
-		MergeRequestsEnabled: gitlab.Ptr(true),
-		Visibility: gitlab.Ptr(
+		MergeRequestsEnabled: new(true),
+		Visibility: new(
 			gitlab.VisibilityValue(mirrorVisibilityMode),
 		),
 	}
 	if namespaceID != 0 {
-		p.NamespaceID = gitlab.Ptr(namespaceID)
+		p.NamespaceID = new(namespaceID)
 	}
 
 	project, _, err := gitProvider.client.Projects.CreateProject(p)
@@ -248,9 +248,9 @@ func (gitProvider *GitGetGitlab) processSubgroups(
 
 	subGrpOpt := &gitlab.ListSubGroupsOptions{
 		ListOptions:  lstOpts,
-		AllAvailable: gitlab.Ptr(true),
-		TopLevelOnly: gitlab.Ptr(false),
-		Owned:        gitlab.Ptr(gitlabOwned),
+		AllAvailable: new(true),
+		TopLevelOnly: new(false),
+		Owned:        new(gitlabOwned),
 	}
 	switch gitlabMinAccessLevel {
 	case "min":
@@ -347,8 +347,8 @@ func (gitProvider *GitGetGitlab) appendGroupsProjects(
 	// https://docs.gitlab.com/ee/api/groups.html#list-a-groups-projects
 	prjOpt := &gitlab.ListGroupProjectsOptions{
 		ListOptions: lstOpts,
-		Owned:       gitlab.Ptr(gitlabOwned),
-		Simple:      gitlab.Ptr(true),
+		Owned:       new(gitlabOwned),
+		Simple:      new(true),
 	}
 	switch gitlabVisibility {
 	case "private":

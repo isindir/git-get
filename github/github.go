@@ -28,7 +28,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v93/github"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 )
@@ -104,10 +104,10 @@ func (gitProvider *GitGetGithub) CreateRepository(
 	git := gitProvider.auth(ctx, repositorySha)
 	isPrivate := mirrorVisibilityMode != "public"
 
-	repoDef := &github.Repository{
-		Name:        github.Ptr(repository),
-		Private:     github.Ptr(isPrivate),
-		Description: github.Ptr(fmt.Sprintf("Mirror of the '%s'", sourceURL)),
+	repoDef := github.CreateRepositoryRequest{
+		Name:        repository,
+		Private:     new(isPrivate),
+		Description: new(fmt.Sprintf("Mirror of the '%s'", sourceURL)),
 	}
 
 	resultingRepository, _, err := git.Repositories.Create(ctx, "", repoDef)

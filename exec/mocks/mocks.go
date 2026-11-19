@@ -17,10 +17,19 @@ func NewShellRunnerI(t interface {
 	mock.TestingT
 	Cleanup(func())
 }) *ShellRunnerI {
+	if helper, ok := t.(interface{ Helper() }); ok {
+		helper.Helper()
+	}
+
 	mock := &ShellRunnerI{}
 	mock.Mock.Test(t)
 
-	t.Cleanup(func() { mock.AssertExpectations(t) })
+	t.Cleanup(func() {
+		if helper, ok := t.(interface{ Helper() }); ok {
+			helper.Helper()
+		}
+		mock.AssertExpectations(t)
+	})
 
 	return mock
 }
@@ -76,27 +85,27 @@ type ShellRunnerI_ExecGitCommand_Call struct {
 //   - stdoutb *bytes.Buffer
 //   - erroutb *bytes.Buffer
 //   - dir string
-func (_e *ShellRunnerI_Expecter) ExecGitCommand(args interface{}, stdoutb interface{}, erroutb interface{}, dir interface{}) *ShellRunnerI_ExecGitCommand_Call {
+func (_e *ShellRunnerI_Expecter) ExecGitCommand(args any, stdoutb any, erroutb any, dir any) *ShellRunnerI_ExecGitCommand_Call {
 	return &ShellRunnerI_ExecGitCommand_Call{Call: _e.mock.On("ExecGitCommand", args, stdoutb, erroutb, dir)}
 }
 
 func (_c *ShellRunnerI_ExecGitCommand_Call) Run(run func(args []string, stdoutb *bytes.Buffer, erroutb *bytes.Buffer, dir string)) *ShellRunnerI_ExecGitCommand_Call {
-	_c.Call.Run(func(args mock.Arguments) {
+	_c.Call.Run(func(args1 mock.Arguments) {
 		var arg0 []string
-		if args[0] != nil {
-			arg0 = args[0].([]string)
+		if args1[0] != nil {
+			arg0 = args1[0].([]string)
 		}
 		var arg1 *bytes.Buffer
-		if args[1] != nil {
-			arg1 = args[1].(*bytes.Buffer)
+		if args1[1] != nil {
+			arg1 = args1[1].(*bytes.Buffer)
 		}
 		var arg2 *bytes.Buffer
-		if args[2] != nil {
-			arg2 = args[2].(*bytes.Buffer)
+		if args1[2] != nil {
+			arg2 = args1[2].(*bytes.Buffer)
 		}
 		var arg3 string
-		if args[3] != nil {
-			arg3 = args[3].(string)
+		if args1[3] != nil {
+			arg3 = args1[3].(string)
 		}
 		run(
 			arg0,

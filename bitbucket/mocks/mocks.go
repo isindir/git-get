@@ -15,10 +15,19 @@ func NewGitGetBitbucketI(t interface {
 	mock.TestingT
 	Cleanup(func())
 }) *GitGetBitbucketI {
+	if helper, ok := t.(interface{ Helper() }); ok {
+		helper.Helper()
+	}
+
 	mock := &GitGetBitbucketI{}
 	mock.Mock.Test(t)
 
-	t.Cleanup(func() { mock.AssertExpectations(t) })
+	t.Cleanup(func() {
+		if helper, ok := t.(interface{ Helper() }); ok {
+			helper.Helper()
+		}
+		mock.AssertExpectations(t)
+	})
 
 	return mock
 }
@@ -66,7 +75,7 @@ type GitGetBitbucketI_CreateRepository_Call struct {
 //   - mirrorVisibilityMode string
 //   - sourceURL string
 //   - projectName string
-func (_e *GitGetBitbucketI_Expecter) CreateRepository(repoSha interface{}, repository interface{}, mirrorVisibilityMode interface{}, sourceURL interface{}, projectName interface{}) *GitGetBitbucketI_CreateRepository_Call {
+func (_e *GitGetBitbucketI_Expecter) CreateRepository(repoSha any, repository any, mirrorVisibilityMode any, sourceURL any, projectName any) *GitGetBitbucketI_CreateRepository_Call {
 	return &GitGetBitbucketI_CreateRepository_Call{Call: _e.mock.On("CreateRepository", repoSha, repository, mirrorVisibilityMode, sourceURL, projectName)}
 }
 
@@ -141,7 +150,7 @@ type GitGetBitbucketI_FetchOwnerRepos_Call struct {
 //   - repoSha string
 //   - owner string
 //   - bitbucketRole string
-func (_e *GitGetBitbucketI_Expecter) FetchOwnerRepos(repoSha interface{}, owner interface{}, bitbucketRole interface{}) *GitGetBitbucketI_FetchOwnerRepos_Call {
+func (_e *GitGetBitbucketI_Expecter) FetchOwnerRepos(repoSha any, owner any, bitbucketRole any) *GitGetBitbucketI_FetchOwnerRepos_Call {
 	return &GitGetBitbucketI_FetchOwnerRepos_Call{Call: _e.mock.On("FetchOwnerRepos", repoSha, owner, bitbucketRole)}
 }
 
@@ -248,7 +257,7 @@ type GitGetBitbucketI_RepositoryExists_Call struct {
 //   - repoSha string
 //   - owner string
 //   - repository string
-func (_e *GitGetBitbucketI_Expecter) RepositoryExists(repoSha interface{}, owner interface{}, repository interface{}) *GitGetBitbucketI_RepositoryExists_Call {
+func (_e *GitGetBitbucketI_Expecter) RepositoryExists(repoSha any, owner any, repository any) *GitGetBitbucketI_RepositoryExists_Call {
 	return &GitGetBitbucketI_RepositoryExists_Call{Call: _e.mock.On("RepositoryExists", repoSha, owner, repository)}
 }
 

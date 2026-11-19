@@ -15,10 +15,19 @@ func NewGitGetGitlabI(t interface {
 	mock.TestingT
 	Cleanup(func())
 }) *GitGetGitlabI {
+	if helper, ok := t.(interface{ Helper() }); ok {
+		helper.Helper()
+	}
+
 	mock := &GitGetGitlabI{}
 	mock.Mock.Test(t)
 
-	t.Cleanup(func() { mock.AssertExpectations(t) })
+	t.Cleanup(func() {
+		if helper, ok := t.(interface{ Helper() }); ok {
+			helper.Helper()
+		}
+		mock.AssertExpectations(t)
+	})
 
 	return mock
 }
@@ -67,7 +76,7 @@ type GitGetGitlabI_CreateProject_Call struct {
 //   - namespaceID int64
 //   - mirrorVisibilityMode string
 //   - sourceURL string
-func (_e *GitGetGitlabI_Expecter) CreateProject(repositorySha interface{}, baseUrl interface{}, projectName interface{}, namespaceID interface{}, mirrorVisibilityMode interface{}, sourceURL interface{}) *GitGetGitlabI_CreateProject_Call {
+func (_e *GitGetGitlabI_Expecter) CreateProject(repositorySha any, baseUrl any, projectName any, namespaceID any, mirrorVisibilityMode any, sourceURL any) *GitGetGitlabI_CreateProject_Call {
 	return &GitGetGitlabI_CreateProject_Call{Call: _e.mock.On("CreateProject", repositorySha, baseUrl, projectName, namespaceID, mirrorVisibilityMode, sourceURL)}
 }
 
@@ -150,7 +159,7 @@ type GitGetGitlabI_FetchOwnerRepos_Call struct {
 //   - gitlabOwned bool
 //   - gitlabVisibility string
 //   - gitlabMinAccessLevel string
-func (_e *GitGetGitlabI_Expecter) FetchOwnerRepos(repositorySha interface{}, baseURL interface{}, groupName interface{}, gitlabOwned interface{}, gitlabVisibility interface{}, gitlabMinAccessLevel interface{}) *GitGetGitlabI_FetchOwnerRepos_Call {
+func (_e *GitGetGitlabI_Expecter) FetchOwnerRepos(repositorySha any, baseURL any, groupName any, gitlabOwned any, gitlabVisibility any, gitlabMinAccessLevel any) *GitGetGitlabI_FetchOwnerRepos_Call {
 	return &GitGetGitlabI_FetchOwnerRepos_Call{Call: _e.mock.On("FetchOwnerRepos", repositorySha, baseURL, groupName, gitlabOwned, gitlabVisibility, gitlabMinAccessLevel)}
 }
 
@@ -239,7 +248,7 @@ type GitGetGitlabI_GetProjectNamespace_Call struct {
 //   - repositorySha string
 //   - baseUrl string
 //   - projectNameFullPath string
-func (_e *GitGetGitlabI_Expecter) GetProjectNamespace(repositorySha interface{}, baseUrl interface{}, projectNameFullPath interface{}) *GitGetGitlabI_GetProjectNamespace_Call {
+func (_e *GitGetGitlabI_Expecter) GetProjectNamespace(repositorySha any, baseUrl any, projectNameFullPath any) *GitGetGitlabI_GetProjectNamespace_Call {
 	return &GitGetGitlabI_GetProjectNamespace_Call{Call: _e.mock.On("GetProjectNamespace", repositorySha, baseUrl, projectNameFullPath)}
 }
 
@@ -346,7 +355,7 @@ type GitGetGitlabI_ProjectExists_Call struct {
 //   - repositorySha string
 //   - baseUrl string
 //   - projectName string
-func (_e *GitGetGitlabI_Expecter) ProjectExists(repositorySha interface{}, baseUrl interface{}, projectName interface{}) *GitGetGitlabI_ProjectExists_Call {
+func (_e *GitGetGitlabI_Expecter) ProjectExists(repositorySha any, baseUrl any, projectName any) *GitGetGitlabI_ProjectExists_Call {
 	return &GitGetGitlabI_ProjectExists_Call{Call: _e.mock.On("ProjectExists", repositorySha, baseUrl, projectName)}
 }
 
@@ -415,7 +424,7 @@ type GitGetGitlabI_appendGroupsProjects_Call struct {
 //   - glRepoList []*gitlab.Project
 //   - gitlabOwned bool
 //   - gitlabVisibility string
-func (_e *GitGetGitlabI_Expecter) appendGroupsProjects(repoSha interface{}, git interface{}, groupID interface{}, groupName interface{}, glRepoList interface{}, gitlabOwned interface{}, gitlabVisibility interface{}) *GitGetGitlabI_appendGroupsProjects_Call {
+func (_e *GitGetGitlabI_Expecter) appendGroupsProjects(repoSha any, git any, groupID any, groupName any, glRepoList any, gitlabOwned any, gitlabVisibility any) *GitGetGitlabI_appendGroupsProjects_Call {
 	return &GitGetGitlabI_appendGroupsProjects_Call{Call: _e.mock.On("appendGroupsProjects", repoSha, git, groupID, groupName, glRepoList, gitlabOwned, gitlabVisibility)}
 }
 
@@ -513,7 +522,7 @@ type GitGetGitlabI_getGroupID_Call struct {
 //   - repoSha string
 //   - git *gitlab.Client
 //   - groupName string
-func (_e *GitGetGitlabI_Expecter) getGroupID(repoSha interface{}, git interface{}, groupName interface{}) *GitGetGitlabI_getGroupID_Call {
+func (_e *GitGetGitlabI_Expecter) getGroupID(repoSha any, git any, groupName any) *GitGetGitlabI_getGroupID_Call {
 	return &GitGetGitlabI_getGroupID_Call{Call: _e.mock.On("getGroupID", repoSha, git, groupName)}
 }
 
@@ -575,7 +584,7 @@ type GitGetGitlabI_gitlabAuth_Call struct {
 // gitlabAuth is a helper method to define mock.On call
 //   - repositorySha string
 //   - baseUrl string
-func (_e *GitGetGitlabI_Expecter) gitlabAuth(repositorySha interface{}, baseUrl interface{}) *GitGetGitlabI_gitlabAuth_Call {
+func (_e *GitGetGitlabI_Expecter) gitlabAuth(repositorySha any, baseUrl any) *GitGetGitlabI_gitlabAuth_Call {
 	return &GitGetGitlabI_gitlabAuth_Call{Call: _e.mock.On("gitlabAuth", repositorySha, baseUrl)}
 }
 
@@ -640,7 +649,7 @@ type GitGetGitlabI_processSubgroups_Call struct {
 //   - gitlabOwned bool
 //   - gitlabVisibility string
 //   - gitlabMinAccessLevel string
-func (_e *GitGetGitlabI_Expecter) processSubgroups(repoSha interface{}, git interface{}, groupID interface{}, groupName interface{}, glRepoList interface{}, gitlabOwned interface{}, gitlabVisibility interface{}, gitlabMinAccessLevel interface{}) *GitGetGitlabI_processSubgroups_Call {
+func (_e *GitGetGitlabI_Expecter) processSubgroups(repoSha any, git any, groupID any, groupName any, glRepoList any, gitlabOwned any, gitlabVisibility any, gitlabMinAccessLevel any) *GitGetGitlabI_processSubgroups_Call {
 	return &GitGetGitlabI_processSubgroups_Call{Call: _e.mock.On("processSubgroups", repoSha, git, groupID, groupName, glRepoList, gitlabOwned, gitlabVisibility, gitlabMinAccessLevel)}
 }
 

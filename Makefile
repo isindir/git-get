@@ -3,6 +3,9 @@ SHELL = /usr/bin/env bash -o pipefail
 GO := GOPROXY=https://proxy.golang.org go
 GOR := goreleaser
 SRC = $(shell find . -type f -name '*.go' -not -path "./vendor/*")
+# Must match the `dir:` entries in .mockery.yaml
+MOCK_DIRS := exec/mocks gitlab/mocks github/mocks bitbucket/mocks
+MOCKERY_VERSION := $(shell awk '$$1 == "mockery" { print $$2 }' .tool-versions)
 
 all: clean fmt vet test build
 
@@ -53,15 +56,25 @@ vet: ## Run go vet against code.
 	$(GO) vet ./...
 
 .PHONY: mockery
-mockery: ## Regenerate mock files
-	rm -fr exec/mocks gitlab/mocks github/mocks bitbucket/mocks
+mockery: clean-mockery mockery-version ## Regenerate mock files
 	mockery
 
 .PHONY: clean-mockery
 clean-mockery: ## Clean mock files
-	for i in exec gitlab github bitbucket; do \
-	(cd $$i; rm -fr mocks) ;\
-	done
+	rm -fr $(MOCK_DIRS)
+
+.PHONY: mockery-version
+mockery-version: ## Fail if installed mockery differs from .tool-versions
+	@have="$$(mockery version 2>/dev/null)"; \
+	if [ "$$have" != "v$(MOCKERY_VERSION)" ]; then \
+		echo "mockery version mismatch: have '$$have', want 'v$(MOCKERY_VERSION)' (.tool-versions)"; \
+		echo "run: asdf install mockery $(MOCKERY_VERSION)"; \
+		exit 1; \
+	fi
+
+.PHONY: mockery-verify
+mockery-verify: mockery ## Regenerate mocks and fail if they differ from git
+	git diff --exit-code -- $(MOCK_DIRS)
 
 .PHONY: mod
 mod: mockery ## Run go mod tidy/vendor

@@ -5,7 +5,7 @@ GOR := goreleaser
 SRC = $(shell find . -type f -name '*.go' -not -path "./vendor/*")
 # Must match the `dir:` entries in .mockery.yaml
 MOCK_DIRS := exec/mocks gitlab/mocks github/mocks bitbucket/mocks
-MOCKERY_VERSION := $(shell awk '$$1 == "mockery" { print $$2 }' .tool-versions)
+MOCKERY_VERSION := $(shell awk -F'"' '$$1 ~ /^mockery[[:space:]]*=/ { print $$2 }' mise.toml)
 
 all: clean fmt vet test build
 
@@ -24,6 +24,10 @@ all: clean fmt vet test build
 
 help: ## Display this help.
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
+
+.PHONY: tools
+tools: ## Install tool versions pinned in mise.toml (ignores configs in parent dirs)
+	MISE_CEILING_PATHS=$(abspath $(CURDIR)/..) mise install
 
 .PHONY: build
 build: ## Builds the binary file
@@ -64,11 +68,11 @@ clean-mockery: ## Clean mock files
 	rm -fr $(MOCK_DIRS)
 
 .PHONY: mockery-version
-mockery-version: ## Fail if installed mockery differs from .tool-versions
+mockery-version: ## Fail if installed mockery differs from mise.toml
 	@have="$$(mockery version 2>/dev/null)"; \
 	if [ "$$have" != "v$(MOCKERY_VERSION)" ]; then \
-		echo "mockery version mismatch: have '$$have', want 'v$(MOCKERY_VERSION)' (.tool-versions)"; \
-		echo "run: asdf install mockery $(MOCKERY_VERSION)"; \
+		echo "mockery version mismatch: have '$$have', want 'v$(MOCKERY_VERSION)' (mise.toml)"; \
+		echo "run: mise install mockery"; \
 		exit 1; \
 	fi
 

@@ -6,7 +6,7 @@ Internal notes for maintainers on how to regenerate the testify mocks in
 ## TL;DR
 
 ```bash
-asdf install                 # installs the mockery version pinned in .tool-versions
+make tools                   # mise install: tools pinned in mise.toml, incl. mockery
 make mockery                 # version check -> clean -> regenerate
 go vet ./... && make test    # generated code must compile and tests must pass
 git diff --stat -- '*/mocks' # review; commit mocks together with the change that caused them
@@ -16,10 +16,10 @@ git diff --stat -- '*/mocks' # review; commit mocks together with the change tha
 
 | Piece | Role |
 |-------|------|
-| `.tool-versions` | Pins the mockery version (`mockery 3.x.y`). Single source of truth. |
+| `mise.toml` | Pins the mockery version (`mockery = "3.x.y"` under `[tools]`). Single source of truth. |
 | `.mockery.yaml` | mockery v3 config: one entry per package, `all: true`, output to `<pkg>/mocks/mocks.go`, package `mocks`. |
 | `MOCK_DIRS` (Makefile) | List of generated directories. Must match the `dir:` entries in `.mockery.yaml`. |
-| `make mockery-version` | Fails if `mockery version` != `v<version from .tool-versions>`. |
+| `make mockery-version` | Fails if `mockery version` != `v<version from mise.toml>`. |
 | `make clean-mockery` | `rm -fr $(MOCK_DIRS)`. |
 | `make mockery` | `clean-mockery` + `mockery-version`, then runs `mockery` from the repo root. |
 | `make mockery-verify` | `make mockery` then `git diff --exit-code` on `MOCK_DIRS`. Fails if committed mocks are stale. |
@@ -37,7 +37,7 @@ when no interface changed. Examples from moving 3.7.0 to 3.9.1:
 - the closure parameter in `Run` was renamed (`args` to `args1`) to avoid clashing
   with method parameters named `args`
 
-So **any change to the mockery version in `.tool-versions` must be committed
+So **any change to the mockery version in `mise.toml` must be committed
 together with regenerated mocks**. If it isn't, the next person who runs
 `make mockery` gets an unrelated diff.
 
@@ -52,10 +52,10 @@ together with regenerated mocks**. If it isn't, the next person who runs
 
 ### When bumping mockery
 
-1. Update `mockery` in `.tool-versions`, then run `asdf install mockery <version>`.
+1. Update `mockery` in `mise.toml`, then run `mise install mockery`.
 2. `make mockery`. Expect a diff in all mock files that comes only from the template.
 3. `go vet ./... && make test`
-4. Commit `.tool-versions` and the mock files together.
+4. Commit `mise.toml` and the mock files together.
 
 ### When adding a package with interfaces to mock
 
@@ -78,8 +78,9 @@ have no uncommitted changes.
 
 - **`mockery version mismatch`**: the `mockery` on `PATH` isn't the pinned
   version. Common causes are a Homebrew or `go install` binary shadowing the
-  asdf shim, or the version not being installed. Check with
-  `which -a mockery` and run `asdf install mockery <version>`.
+  mise shim/activated path, mise not being activated in the shell, or the
+  version not being installed. Check with `which -a mockery` and
+  `mise which mockery`, then run `mise install mockery`.
 - **mockery v2 binary**: v2 doesn't understand the v3 keys in `.mockery.yaml`
   (`structname`, `pkgname` and so on) and writes files in a different layout.
   Always use v3 as pinned.

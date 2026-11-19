@@ -31,14 +31,25 @@ jobs:
         run: |
           make
 
+      # UPDATE_HERE
+      # https://github.com/slackapi/slack-github-action/releases
       - name: Slack Notification
-        uses: 8398a7/action-slack@v3
+        uses: slackapi/slack-github-action@v4
         if: always()
         with:
-          status: ${{ job.status }}
-          fields: repo,message # commit,author,action,eventName,ref,workflow,job,took
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+          webhook: ${{ secrets.SLACK_WEBHOOK }}
+          webhook-type: incoming-webhook
+          payload: |
+            text: "${{ github.workflow }} / ${{ github.job }}: ${{ job.status }}"
+            attachments:
+              - color: "${{ job.status == 'success' && 'good' || (job.status == 'cancelled' && 'warning' || 'danger') }}"
+                fields:
+                  - title: "repo"
+                    value: "<${{ github.server_url }}/${{ github.repository }}|${{ github.repository }}>"
+                    short: true
+                  - title: "message"
+                    value: ${{ toJSON(format('<{0}|{1}>', github.event.head_commit.url, github.event.head_commit.message)) }}
+                    short: true
 
   release:
     name: Release
@@ -77,11 +88,22 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
 
+      # UPDATE_HERE
+      # https://github.com/slackapi/slack-github-action/releases
       - name: Slack Notification
-        uses: 8398a7/action-slack@v3
+        uses: slackapi/slack-github-action@v4
         if: always()
         with:
-          status: ${{ job.status }}
-          fields: repo,message # commit,author,action,eventName,ref,workflow,job,took
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+          webhook: ${{ secrets.SLACK_WEBHOOK }}
+          webhook-type: incoming-webhook
+          payload: |
+            text: "${{ github.workflow }} / ${{ github.job }}: ${{ job.status }}"
+            attachments:
+              - color: "${{ job.status == 'success' && 'good' || (job.status == 'cancelled' && 'warning' || 'danger') }}"
+                fields:
+                  - title: "repo"
+                    value: "<${{ github.server_url }}/${{ github.repository }}|${{ github.repository }}>"
+                    short: true
+                  - title: "message"
+                    value: ${{ toJSON(format('<{0}|{1}>', github.event.head_commit.url, github.event.head_commit.message)) }}
+                    short: true

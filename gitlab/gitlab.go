@@ -214,7 +214,7 @@ func (gitProvider *GitGetGitlab) getGroupID(
 		return 0, "", err
 	}
 	log.Debugf("%s: Found '%d' groups for '%s'", repoSha, len(foundGroups), groupName)
-	for group := 0; group < len(foundGroups); group++ {
+	for group := range foundGroups {
 		log.Debugf(
 			"%s: Checking group '%d:%s' to be as specified",
 			repoSha,

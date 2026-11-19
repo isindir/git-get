@@ -875,7 +875,7 @@ func GetRepositories(
 }
 
 func ignoreThisRepo(repoURL string, ignoreRepoList []Repo) bool {
-	for ignoreRepo := 0; ignoreRepo < len(ignoreRepoList); ignoreRepo++ {
+	for ignoreRepo := range ignoreRepoList {
 		if ignoreRepoList[ignoreRepo].URL == repoURL {
 			return true
 		}
@@ -905,7 +905,7 @@ func fetchGithubRepos(
 	)
 	log.Debugf("%s: Number of fetched repositories: '%d'", repoSha, len(ghRepoList))
 
-	for repo := 0; repo < len(ghRepoList); repo++ {
+	for repo := range ghRepoList {
 		var gitGetRepoDefinition Repo
 		switch configGenParams.GitSchema {
 		case SSH:
@@ -938,7 +938,7 @@ func fetchGithubRepos(
 
 func getBitbucketRepositoryGitURL(
 	repoSha string,
-	v map[string]interface{},
+	v map[string]any,
 	gitCloudProviderRootURL string,
 	fullName string,
 	gitSchema string,
@@ -989,7 +989,7 @@ func fetchBitbucketRepos(
 	log.Infof("%s: Fetching repositories for '%s' target: '%s'", repoSha, gitProvider, gitCloudProviderRootURL)
 	bbRepoList := bitbucket.FetchOwnerRepos(
 		repoSha, owner, configGenParams.BitbucketRole)
-	for repo := 0; repo < len(bbRepoList); repo++ {
+	for repo := range bbRepoList {
 		gitGetRepoDefinition := Repo{
 			URL: getBitbucketRepositoryGitURL(
 				repoSha,
@@ -1038,7 +1038,7 @@ func fetchGitlabRepos(
 		configGenParams.GitlabVisibility,
 		configGenParams.GitlabMinAccessLevel,
 	)
-	for repo := 0; repo < len(glRepoList); repo++ {
+	for repo := range glRepoList {
 		log.Debugf("%s: '%s'", repoSha, glRepoList[repo].SSHURLToRepo)
 
 		var gitGetRepoDefinition Repo

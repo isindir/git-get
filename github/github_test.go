@@ -7,7 +7,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/google/go-github/v93/github"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -136,17 +135,4 @@ func TestGitGetGithub_CreateRepository_PublicMode(t *testing.T) {
 	// Test that public mode sets isPrivate to false
 	// This would require mocking the GitHub client
 	t.Skip("Requires GitHub client mocking")
-}
-
-func TestGithubPtr(t *testing.T) {
-	// Test github.Ptr helper function behavior
-	strVal := "test"
-	strPtr := github.Ptr(strVal)
-	assert.NotNil(t, strPtr)
-	assert.Equal(t, "test", *strPtr)
-
-	boolVal := true
-	boolPtr := github.Ptr(boolVal)
-	assert.NotNil(t, boolPtr)
-	assert.Equal(t, true, *boolPtr)
 }

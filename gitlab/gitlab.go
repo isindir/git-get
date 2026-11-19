@@ -177,7 +177,7 @@ func (gitProvider *GitGetGitlab) CreateProject(
 		Description: new(
 			fmt.Sprintf("Mirror of the '%s'", sourceURL),
 		),
-		MergeRequestsEnabled: new(true),
+		MergeRequestsAccessLevel: new(gitlab.EnabledAccessControl),
 		Visibility: new(
 			gitlab.VisibilityValue(mirrorVisibilityMode),
 		),

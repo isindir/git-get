@@ -1,11 +1,16 @@
 # UPDATE_HERE
+# https://github.com/jdx/mise/releases
+min_version = "2026.11.6"
+
+[tools]
+# UPDATE_HERE
 # https://golang.org/dl/
-golang 1.27.4
+go = "1.27.4"
 # https://github.com/goreleaser/goreleaser/releases
-goreleaser 2.20.2
+goreleaser = "2.20.2"
 # https://github.com/vektra/mockery/releases
-mockery 3.9.1
+mockery = "3.9.1"
 # https://github.com/caarlos0/svu/releases
-svu 3.4.4
+svu = "3.4.4"
 # https://github.com/golangci/golangci-lint/releases
-golangci-lint 2.15.0
+golangci-lint = "2.15.0"

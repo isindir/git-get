@@ -192,6 +192,21 @@ Flags:
   -v, --mirror-visibility-mode string          Mirror visibility mode [private|internal|public] (default "private")
 ```
 
+# Development
+
+Tool versions (Go, goreleaser, mockery, svu, golangci-lint) are pinned in
+`mise.toml` and installed with [mise](https://mise.jdx.dev/):
+
+```bash
+mise trust     # once per clone
+make tools     # mise install
+make           # clean fmt vet test build
+make help      # list all targets
+```
+
+CI uses the same `mise.toml` via `jdx/mise-action`. Mock regeneration is
+described in [docs/mockery.md](docs/mockery.md).
+
 # Related or similar projects
 
 * https://github.com/bradurani/Gitfile

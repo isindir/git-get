@@ -1,5 +1,4 @@
 //go:build !integration
-// +build !integration
 
 package github
 
@@ -8,7 +7,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/google/go-github/v88/github"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -101,7 +99,7 @@ func TestGitGetGithub_Auth(t *testing.T) {
 	gitProvider.Init()
 
 	ctx := context.Background()
-	client := gitProvider.auth(ctx, "test-sha")
+	client := gitProvider.auth(ctx)
 
 	assert.NotNil(t, client)
 	// Verify client is properly initialized
@@ -137,17 +135,4 @@ func TestGitGetGithub_CreateRepository_PublicMode(t *testing.T) {
 	// Test that public mode sets isPrivate to false
 	// This would require mocking the GitHub client
 	t.Skip("Requires GitHub client mocking")
-}
-
-func TestGithubPtr(t *testing.T) {
-	// Test github.Ptr helper function behavior
-	strVal := "test"
-	strPtr := github.Ptr(strVal)
-	assert.NotNil(t, strPtr)
-	assert.Equal(t, "test", *strPtr)
-
-	boolVal := true
-	boolPtr := github.Ptr(boolVal)
-	assert.NotNil(t, boolPtr)
-	assert.Equal(t, true, *boolPtr)
 }

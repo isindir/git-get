@@ -7,7 +7,7 @@ package mocks
 import (
 	"context"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v93/github"
 	mock "github.com/stretchr/testify/mock"
 )
 
@@ -17,10 +17,19 @@ func NewGitGetGithubI(t interface {
 	mock.TestingT
 	Cleanup(func())
 }) *GitGetGithubI {
+	if helper, ok := t.(interface{ Helper() }); ok {
+		helper.Helper()
+	}
+
 	mock := &GitGetGithubI{}
 	mock.Mock.Test(t)
 
-	t.Cleanup(func() { mock.AssertExpectations(t) })
+	t.Cleanup(func() {
+		if helper, ok := t.(interface{ Helper() }); ok {
+			helper.Helper()
+		}
+		mock.AssertExpectations(t)
+	})
 
 	return mock
 }
@@ -68,7 +77,7 @@ type GitGetGithubI_CreateRepository_Call struct {
 //   - repository string
 //   - mirrorVisibilityMode string
 //   - sourceURL string
-func (_e *GitGetGithubI_Expecter) CreateRepository(ctx interface{}, repositorySha interface{}, repository interface{}, mirrorVisibilityMode interface{}, sourceURL interface{}) *GitGetGithubI_CreateRepository_Call {
+func (_e *GitGetGithubI_Expecter) CreateRepository(ctx any, repositorySha any, repository any, mirrorVisibilityMode any, sourceURL any) *GitGetGithubI_CreateRepository_Call {
 	return &GitGetGithubI_CreateRepository_Call{Call: _e.mock.On("CreateRepository", ctx, repositorySha, repository, mirrorVisibilityMode, sourceURL)}
 }
 
@@ -145,7 +154,7 @@ type GitGetGithubI_FetchOwnerRepos_Call struct {
 //   - owner string
 //   - githubVisibility string
 //   - githubAffiliation string
-func (_e *GitGetGithubI_Expecter) FetchOwnerRepos(ctx interface{}, repoSha interface{}, owner interface{}, githubVisibility interface{}, githubAffiliation interface{}) *GitGetGithubI_FetchOwnerRepos_Call {
+func (_e *GitGetGithubI_Expecter) FetchOwnerRepos(ctx any, repoSha any, owner any, githubVisibility any, githubAffiliation any) *GitGetGithubI_FetchOwnerRepos_Call {
 	return &GitGetGithubI_FetchOwnerRepos_Call{Call: _e.mock.On("FetchOwnerRepos", ctx, repoSha, owner, githubVisibility, githubAffiliation)}
 }
 
@@ -263,7 +272,7 @@ type GitGetGithubI_RepositoryExists_Call struct {
 //   - repositorySha string
 //   - owner string
 //   - repository string
-func (_e *GitGetGithubI_Expecter) RepositoryExists(ctx interface{}, repositorySha interface{}, owner interface{}, repository interface{}) *GitGetGithubI_RepositoryExists_Call {
+func (_e *GitGetGithubI_Expecter) RepositoryExists(ctx any, repositorySha any, owner any, repository any) *GitGetGithubI_RepositoryExists_Call {
 	return &GitGetGithubI_RepositoryExists_Call{Call: _e.mock.On("RepositoryExists", ctx, repositorySha, owner, repository)}
 }
 

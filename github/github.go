@@ -28,7 +28,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v93/github"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 )
@@ -64,7 +64,7 @@ func (gitProvider *GitGetGithub) Init() bool {
 	return tokenFound
 }
 
-func (gitProvider *GitGetGithub) auth(ctx context.Context, repositorySha string) *github.Client {
+func (gitProvider *GitGetGithub) auth(ctx context.Context) *github.Client {
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: gitProvider.token},
 	)
@@ -79,7 +79,7 @@ func (gitProvider *GitGetGithub) auth(ctx context.Context, repositorySha string)
 
 // RepositoryExists - check if remote github repository exists (method)
 func (gitProvider *GitGetGithub) RepositoryExists(ctx context.Context, repositorySha, owner, repository string) bool {
-	git := gitProvider.auth(ctx, repositorySha)
+	git := gitProvider.auth(ctx)
 	repo, _, err := git.Repositories.Get(ctx, owner, repository)
 
 	log.Debugf("%s: %+v == %+v", repositorySha, repo, err)
@@ -101,13 +101,13 @@ func (gitProvider *GitGetGithub) CreateRepository(
 	mirrorVisibilityMode string,
 	sourceURL string,
 ) *github.Repository {
-	git := gitProvider.auth(ctx, repositorySha)
+	git := gitProvider.auth(ctx)
 	isPrivate := mirrorVisibilityMode != "public"
 
-	repoDef := &github.Repository{
-		Name:        github.Ptr(repository),
-		Private:     github.Ptr(isPrivate),
-		Description: github.Ptr(fmt.Sprintf("Mirror of the '%s'", sourceURL)),
+	repoDef := github.CreateRepositoryRequest{
+		Name:        repository,
+		Private:     new(isPrivate),
+		Description: new(fmt.Sprintf("Mirror of the '%s'", sourceURL)),
 	}
 
 	resultingRepository, _, err := git.Repositories.Create(ctx, "", repoDef)
@@ -142,9 +142,7 @@ func fetchOrgRepos(
 	var repoList []*github.Repository
 
 	opts := &github.RepositoryListByOrgOptions{
-		ListOptions: github.ListOptions{
-			Page: 0,
-		},
+		Page: 0,
 	}
 
 	for {
@@ -152,7 +150,7 @@ func fetchOrgRepos(
 		log.Debugf(
 			"%s: NextPage/PrevPage/FirstPage/LastPage '%d/%d/%d/%d'\n",
 			repoSha, res.NextPage, res.PrevPage, res.FirstPage, res.LastPage)
-		for repo := 0; repo < len(repos); repo++ {
+		for repo := range repos {
 			log.Debugf("%s: (%d) Repo FullName '%s'", repoSha, opts.Page, *repos[repo].FullName)
 		}
 		repoList = append(repoList, repos...)
@@ -189,9 +187,7 @@ func fetchUserRepos(
 		// Default: owner,collaborator,organization_member
 		// Can be set via CLI flags
 		Affiliation: githubAffiliation,
-		ListOptions: github.ListOptions{
-			Page: 0,
-		},
+		Page:        0,
 	}
 
 	for {
@@ -199,7 +195,7 @@ func fetchUserRepos(
 		log.Debugf(
 			"%s: NextPage/PrevPage/FirstPage/LastPage '%d/%d/%d/%d'\n",
 			repoSha, res.NextPage, res.PrevPage, res.FirstPage, res.LastPage)
-		for repo := 0; repo < len(repos); repo++ {
+		for repo := range repos {
 			log.Debugf("%s: (%d) Repo FullName '%s'", repoSha, opts.Page, *repos[repo].FullName)
 		}
 		repoList = append(repoList, repos...)
@@ -228,7 +224,7 @@ func (gitProvider *GitGetGithub) FetchOwnerRepos(
 	repoSha, owner, githubVisibility, githubAffiliation string,
 ) []*github.Repository {
 	log.Debugf("%s: Specified owner: '%s'", repoSha, owner)
-	git := gitProvider.auth(ctx, repoSha)
+	git := gitProvider.auth(ctx)
 	var repoList []*github.Repository
 	var userType string
 

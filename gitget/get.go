@@ -39,7 +39,7 @@ import (
 
 	"github.com/fatih/color"
 	log "github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v3"
+	yaml "go.yaml.in/yaml/v4"
 
 	"github.com/isindir/git-get/bitbucket"
 	"github.com/isindir/git-get/exec"
@@ -875,7 +875,7 @@ func GetRepositories(
 }
 
 func ignoreThisRepo(repoURL string, ignoreRepoList []Repo) bool {
-	for ignoreRepo := 0; ignoreRepo < len(ignoreRepoList); ignoreRepo++ {
+	for ignoreRepo := range ignoreRepoList {
 		if ignoreRepoList[ignoreRepo].URL == repoURL {
 			return true
 		}
@@ -905,7 +905,7 @@ func fetchGithubRepos(
 	)
 	log.Debugf("%s: Number of fetched repositories: '%d'", repoSha, len(ghRepoList))
 
-	for repo := 0; repo < len(ghRepoList); repo++ {
+	for repo := range ghRepoList {
 		var gitGetRepoDefinition Repo
 		switch configGenParams.GitSchema {
 		case SSH:
@@ -938,7 +938,7 @@ func fetchGithubRepos(
 
 func getBitbucketRepositoryGitURL(
 	repoSha string,
-	v map[string]interface{},
+	v map[string]any,
 	gitCloudProviderRootURL string,
 	fullName string,
 	gitSchema string,
@@ -947,16 +947,16 @@ func getBitbucketRepositoryGitURL(
 	cloneLinks := v["clone"]
 	guessWorkRepoURL := fmt.Sprintf("%s/%s", gitCloudProviderRootURL, fullName)
 
-	linksData, err := yaml.Marshal(&cloneLinks)
+	linksData, err := yaml.Dump(&cloneLinks)
 	if err != nil {
-		log.Errorf("%s: Error marshaling clone links: '%+v', error: '%s'", repoSha, cloneLinks, err)
+		log.Errorf("%s: Error loading clone links: '%+v', error: '%s'", repoSha, cloneLinks, err)
 		log.Debugf("%s: Return guess work repo clone path: '%s'", repoSha, guessWorkRepoURL)
 		return guessWorkRepoURL
 	}
 
-	err = yaml.Unmarshal(linksData, &bbLinks)
+	err = yaml.Load(linksData, &bbLinks)
 	if err != nil {
-		log.Errorf("%s: Error unmarshaling clone links: '%+v', error: '%s'", repoSha, cloneLinks, err)
+		log.Errorf("%s: Error loading clone links: '%+v', error: '%s'", repoSha, cloneLinks, err)
 		log.Debugf("%s: Return guess work repo clone path: '%s'", repoSha, guessWorkRepoURL)
 
 		return guessWorkRepoURL
@@ -989,7 +989,7 @@ func fetchBitbucketRepos(
 	log.Infof("%s: Fetching repositories for '%s' target: '%s'", repoSha, gitProvider, gitCloudProviderRootURL)
 	bbRepoList := bitbucket.FetchOwnerRepos(
 		repoSha, owner, configGenParams.BitbucketRole)
-	for repo := 0; repo < len(bbRepoList); repo++ {
+	for repo := range bbRepoList {
 		gitGetRepoDefinition := Repo{
 			URL: getBitbucketRepositoryGitURL(
 				repoSha,
@@ -1038,7 +1038,7 @@ func fetchGitlabRepos(
 		configGenParams.GitlabVisibility,
 		configGenParams.GitlabMinAccessLevel,
 	)
-	for repo := 0; repo < len(glRepoList); repo++ {
+	for repo := range glRepoList {
 		log.Debugf("%s: '%s'", repoSha, glRepoList[repo].SSHURLToRepo)
 
 		var gitGetRepoDefinition Repo
@@ -1078,7 +1078,7 @@ func writeReposToFile(repoSha, cfgFile string, repoList []Repo) {
 		log.Infof(
 			"%s: Final number of repositories to be written to '%s': '%d'",
 			repoSha, cfgFile, len(repoList))
-		repoData, err := yaml.Marshal(&repoList)
+		repoData, err := yaml.Dump(&repoList)
 		if err != nil {
 			log.Fatalf("%s: %s", cfgFile, err)
 		}
@@ -1107,7 +1107,7 @@ func GetConfigRepoList(cfgFiles []string) *RepoList {
 			log.Fatalf("%s: %s", cfgFile, err)
 		}
 
-		if err := yaml.Unmarshal(yamlFile, &singleRepoList); err != nil {
+		if err := yaml.Load(yamlFile, &singleRepoList); err != nil {
 			log.Fatalf("%s: %s", cfgFile, err)
 		}
 		log.Debugf("Number of repositories to process from '%s': '%d'", cfgFile, len(singleRepoList))
@@ -1131,7 +1131,7 @@ func GetIgnoreRepoList(ignoreFiles []string) []Repo {
 			return ignoreRepoList
 		}
 
-		if err := yaml.Unmarshal(yamlIgnoreFile, &singleFileIgnoreRepoList); err != nil {
+		if err := yaml.Load(yamlIgnoreFile, &singleFileIgnoreRepoList); err != nil {
 			log.Fatalf("%s: %s", ignoreFile, err)
 		}
 		log.Debugf("Number of repositories to ignore from '%s': '%d'", ignoreFile, len(singleFileIgnoreRepoList))

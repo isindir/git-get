@@ -19,10 +19,10 @@ require (
 	github.com/stretchr/testify v1.12.1
 	// https://gitlab.com/gitlab-org/api/client-go/-/releases
 	gitlab.com/gitlab-org/api/client-go v1.46.0
+	// https://github.com/yaml/go-yaml/tags
+	go.yaml.in/yaml/v4 v4.0.0
 	// https://pkg.go.dev/golang.org/x/oauth2
 	golang.org/x/oauth2 v0.38.0
-	// https://gopkg.in/yaml.v3
-	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
@@ -30,7 +30,6 @@ require (
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-retryablehttp v0.7.8 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
-	github.com/kr/text v0.2.0 // indirect
 	github.com/mattn/go-colorable v0.1.16 // indirect
 	github.com/mattn/go-isatty v0.0.24 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect

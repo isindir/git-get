@@ -39,7 +39,7 @@ import (
 
 	"github.com/fatih/color"
 	log "github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v3"
+	yaml "go.yaml.in/yaml/v4"
 
 	"github.com/isindir/git-get/bitbucket"
 	"github.com/isindir/git-get/exec"
@@ -947,16 +947,16 @@ func getBitbucketRepositoryGitURL(
 	cloneLinks := v["clone"]
 	guessWorkRepoURL := fmt.Sprintf("%s/%s", gitCloudProviderRootURL, fullName)
 
-	linksData, err := yaml.Marshal(&cloneLinks)
+	linksData, err := yaml.Dump(&cloneLinks)
 	if err != nil {
-		log.Errorf("%s: Error marshaling clone links: '%+v', error: '%s'", repoSha, cloneLinks, err)
+		log.Errorf("%s: Error loading clone links: '%+v', error: '%s'", repoSha, cloneLinks, err)
 		log.Debugf("%s: Return guess work repo clone path: '%s'", repoSha, guessWorkRepoURL)
 		return guessWorkRepoURL
 	}
 
-	err = yaml.Unmarshal(linksData, &bbLinks)
+	err = yaml.Load(linksData, &bbLinks)
 	if err != nil {
-		log.Errorf("%s: Error unmarshaling clone links: '%+v', error: '%s'", repoSha, cloneLinks, err)
+		log.Errorf("%s: Error loading clone links: '%+v', error: '%s'", repoSha, cloneLinks, err)
 		log.Debugf("%s: Return guess work repo clone path: '%s'", repoSha, guessWorkRepoURL)
 
 		return guessWorkRepoURL
@@ -1078,7 +1078,7 @@ func writeReposToFile(repoSha, cfgFile string, repoList []Repo) {
 		log.Infof(
 			"%s: Final number of repositories to be written to '%s': '%d'",
 			repoSha, cfgFile, len(repoList))
-		repoData, err := yaml.Marshal(&repoList)
+		repoData, err := yaml.Dump(&repoList)
 		if err != nil {
 			log.Fatalf("%s: %s", cfgFile, err)
 		}
@@ -1107,7 +1107,7 @@ func GetConfigRepoList(cfgFiles []string) *RepoList {
 			log.Fatalf("%s: %s", cfgFile, err)
 		}
 
-		if err := yaml.Unmarshal(yamlFile, &singleRepoList); err != nil {
+		if err := yaml.Load(yamlFile, &singleRepoList); err != nil {
 			log.Fatalf("%s: %s", cfgFile, err)
 		}
 		log.Debugf("Number of repositories to process from '%s': '%d'", cfgFile, len(singleRepoList))
@@ -1131,7 +1131,7 @@ func GetIgnoreRepoList(ignoreFiles []string) []Repo {
 			return ignoreRepoList
 		}
 
-		if err := yaml.Unmarshal(yamlIgnoreFile, &singleFileIgnoreRepoList); err != nil {
+		if err := yaml.Load(yamlIgnoreFile, &singleFileIgnoreRepoList); err != nil {
 			log.Fatalf("%s: %s", ignoreFile, err)
 		}
 		log.Debugf("Number of repositories to ignore from '%s': '%d'", ignoreFile, len(singleFileIgnoreRepoList))
